@@ -65,12 +65,15 @@ export function makeCommandInteraction(
   opts: { channelId?: string; parentId?: string; userId?: string } = {}
 ): Interaction {
   const channelId = opts.channelId ?? CHANNEL_ID;
+  // 실제 디스코드에서는 카테고리에 속한 일반 채널도 parent_id(카테고리 id)를 갖는다.
+  // 기본값을 카테고리 소속으로 둬서, parent_id 유무만으로 스레드를 판별하는 회귀를 테스트가 잡아내게 한다.
+  const parentId = opts.parentId ?? "category-1";
   return {
     id: "inter-1",
     type: 2,
     token: "inter-token",
     channel_id: channelId,
-    channel: { id: channelId, ...(opts.parentId ? { parent_id: opts.parentId } : {}) },
+    channel: { id: channelId, parent_id: parentId },
     member: { user: { id: opts.userId ?? "u1" } },
     data: { name, options },
   };

@@ -21,11 +21,13 @@ export const handleSubmit: Handler = async (interaction, deps) => {
 
   const userId = interactionUserId(interaction);
   const nowIso = now.toISOString();
-  const newlyJoined = await addParticipant(deps.db, cycle.id, userId, "submit", nowIso);
+  // 중복 검사가 참여 등록보다 먼저다: 거부되는 제출로 유령 참여자(제출 없이 벌금 대상)가
+  // 생기지 않도록, 성공적으로 저장된 제출에 대해서만 참여자로 등록한다.
   const inserted = await insertSubmission(deps.db, {
     cycleId: cycle.id, userId, url: norm.url, submittedAt: nowIso,
   });
   if (inserted === "duplicate") return ephemeral("이미 인증한 링크예요.");
+  const newlyJoined = await addParticipant(deps.db, cycle.id, userId, "submit", nowIso);
 
   const count = (await countSubmissionsByUser(deps.db, cycle.id)).get(userId) ?? 0;
   deps.ctx.waitUntil(verifyAndReport(deps, cycle, inserted.id, norm.url));

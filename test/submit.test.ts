@@ -102,6 +102,31 @@ describe("/인증", () => {
     expect(body.data.flags).toBe(64);
   });
 
+  it("카테고리에 속한 인증 채널(메인)에서도 현재 주차로 귀속된다", async () => {
+    const c = await seedCycle("2026-07-20", "thread-A");
+    await q.addParticipant(env.DB, c.id, "u1", "manual", NOW_ISO);
+    // makeCommandInteraction 기본값이 카테고리 parent_id를 갖는다 — 명시적으로도 고정
+    const i = submitInteraction("https://a.com/category-case");
+    expect(i.channel?.parent_id).toBe("category-1");
+    const body = await readJson(await handleSubmit(i, makeDeps()));
+    expect(body.data.flags).toBeUndefined();
+    expect(body.data.content).toContain("1/1개");
+  });
+
+  it("비참여자의 중복 재제출은 거부되고 유령 참여자로 남지 않는다", async () => {
+    const old = await seedCycle("2026-07-13", "thread-OLD");
+    await q.insertSubmission(env.DB, {
+      cycleId: old.id, userId: "u9", url: "https://a.com/old-post", submittedAt: NOW_ISO,
+    });
+    const current = await seedCycle("2026-07-20", "thread-A");
+    const body = await readJson(
+      await handleSubmit(submitInteraction("https://a.com/old-post", { userId: "u9" }), makeDeps())
+    );
+    expect(body.data.flags).toBe(64);
+    expect(body.data.content).toContain("이미 인증한 링크");
+    expect(await q.listParticipants(env.DB, current.id)).toEqual([]); // 유령 참여자 없음
+  });
+
   it("res.ok 이후 본문 읽기가 실패해도 failed로 기록된다", async () => {
     const c = await seedCycle("2026-07-20", "thread-A");
     await q.addParticipant(env.DB, c.id, "u1", "manual", NOW_ISO);
