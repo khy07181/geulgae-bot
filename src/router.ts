@@ -1,8 +1,10 @@
 import type { DiscordApi, Fetcher } from "./discord/api";
 import { ephemeral, pong } from "./discord/replies";
 import { handleGoal } from "./interactions/goal";
+import { handleJoinButton } from "./interactions/join-button";
 import { handleStatus } from "./interactions/status";
 import { handleSubmit } from "./interactions/submit";
+import { handleWithdraw } from "./interactions/withdraw";
 import { InteractionType, type Env, type Interaction } from "./types";
 
 export interface Deps {
@@ -21,10 +23,13 @@ const commandHandlers: Record<string, Handler> = {
   인증: handleSubmit,
   목표설정: handleGoal,
   현황: handleStatus,
+  참여취소: handleWithdraw,
 };
 
 // custom_id의 ':' 앞부분(prefix)으로 매칭. Task 11에서 "join"이 추가된다.
-const componentHandlers: Record<string, Handler> = {};
+const componentHandlers: Record<string, Handler> = {
+  join: handleJoinButton,
+};
 
 export async function routeInteraction(interaction: Interaction, deps: Deps): Promise<Response> {
   if (interaction.type === InteractionType.PING) return pong();
