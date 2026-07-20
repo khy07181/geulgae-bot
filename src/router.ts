@@ -1,5 +1,6 @@
 import type { DiscordApi, Fetcher } from "./discord/api";
 import { ephemeral, pong } from "./discord/replies";
+import { handleGoal } from "./interactions/goal";
 import { handleSubmit } from "./interactions/submit";
 import { InteractionType, type Env, type Interaction } from "./types";
 
@@ -17,6 +18,7 @@ export type Handler = (interaction: Interaction, deps: Deps) => Promise<Response
 // Task 8~12에서 핸들러가 한 항목씩 추가된다.
 const commandHandlers: Record<string, Handler> = {
   인증: handleSubmit,
+  목표설정: handleGoal,
 };
 
 // custom_id의 ':' 앞부분(prefix)으로 매칭. Task 11에서 "join"이 추가된다.
