@@ -1,6 +1,8 @@
 import { verifyKey } from "discord-interactions";
 import { DiscordApi } from "./discord/api";
 import { settleSweep, type JobDeps } from "./jobs/settle";
+import { fallbackNotice } from "./jobs/fallback-notice";
+import { reminder } from "./jobs/reminder";
 import { routeInteraction, type Deps } from "./router";
 import type { Env, Interaction } from "./types";
 
@@ -41,8 +43,14 @@ export default {
         case "5 15 * * *": // 매일 00:05 KST — 정산 sweep
           await settleSweep(deps);
           break;
+        case "0 1 * * 2": // 화 10:00 KST — 안전망 공지
+          await fallbackNotice(deps);
+          break;
+        case "0 1 * * 0": // 일 10:00 KST — 마감 리마인더
+          await reminder(deps);
+          break;
         default:
-          console.log(`미연결 cron: ${event.cron}`); // Task 14에서 나머지 두 잡을 연결한다
+          console.log(`알 수 없는 cron: ${event.cron}`);
       }
     } catch (err) {
       console.error("cron 잡 실패:", event.cron, err);
