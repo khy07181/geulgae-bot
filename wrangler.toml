@@ -8,7 +8,7 @@ crons = ["5 15 * * *", "0 1 * * 2", "0 1 * * 0"]
 [[d1_databases]]
 binding = "DB"
 database_name = "geulgae-bot-db"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "2728fae9-ed24-46d7-9a4c-1776132389c1"
 
 [vars]
 DISCORD_PUBLIC_KEY = "REPLACE_ME"
