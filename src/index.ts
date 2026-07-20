@@ -40,7 +40,7 @@ export default {
     };
     try {
       switch (event.cron) {
-        case "5 15 * * *": // 매일 00:05 KST — 정산 sweep
+        case "1 15 * * *": // 매일 00:01 KST — 정산 sweep
           await settleSweep(deps);
           break;
         case "0 1 * * TUE": // 화 10:00 KST — 안전망 공지
