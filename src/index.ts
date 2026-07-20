@@ -43,10 +43,10 @@ export default {
         case "5 15 * * *": // 매일 00:05 KST — 정산 sweep
           await settleSweep(deps);
           break;
-        case "0 1 * * 2": // 화 10:00 KST — 안전망 공지
+        case "0 1 * * TUE": // 화 10:00 KST — 안전망 공지
           await fallbackNotice(deps);
           break;
-        case "0 1 * * 0": // 일 10:00 KST — 마감 리마인더
+        case "0 1 * * SUN": // 일 10:00 KST — 마감 리마인더
           await reminder(deps);
           break;
         default:

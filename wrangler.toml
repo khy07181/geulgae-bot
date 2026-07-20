@@ -3,7 +3,7 @@ main = "src/index.ts"
 compatibility_date = "2026-03-10"
 
 [triggers]
-crons = ["5 15 * * *", "0 1 * * 2", "0 1 * * 0"]
+crons = ["5 15 * * *", "0 1 * * TUE", "0 1 * * SUN"]
 
 [[d1_databases]]
 binding = "DB"
@@ -11,7 +11,7 @@ database_name = "geulgae-bot-db"
 database_id = "2728fae9-ed24-46d7-9a4c-1776132389c1"
 
 [vars]
-DISCORD_PUBLIC_KEY = "REPLACE_ME"
-DISCORD_APPLICATION_ID = "REPLACE_ME"
-DISCORD_GUILD_ID = "REPLACE_ME"
-CHANNEL_ID = "REPLACE_ME"
+DISCORD_PUBLIC_KEY = "79f434c168b1fe59b0b0d3242848515d54552c6e2f9579bac3124cb979364328"
+DISCORD_APPLICATION_ID = "1528755119783415829"
+DISCORD_GUILD_ID = "1334849882254610484"
+CHANNEL_ID = "1337340585320779786"
