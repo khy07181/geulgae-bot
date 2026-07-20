@@ -9,7 +9,7 @@ function toHex(bytes: Uint8Array): string {
 
 async function makeKeys() {
   const pair = (await crypto.subtle.generateKey("Ed25519", true, ["sign", "verify"])) as CryptoKeyPair;
-  const raw = new Uint8Array(await crypto.subtle.exportKey("raw", pair.publicKey));
+  const raw = new Uint8Array((await crypto.subtle.exportKey("raw", pair.publicKey)) as ArrayBuffer);
   return { pair, publicKeyHex: toHex(raw) };
 }
 
@@ -31,7 +31,10 @@ describe("index.fetch", () => {
     const env = makeEnv({ DISCORD_PUBLIC_KEY: publicKeyHex });
     const ctx = createExecutionContext();
     const res = await worker.fetch(
-      await signedRequest(pair, JSON.stringify({ id: "1", type: 1, token: "t" })),
+      (await signedRequest(pair, JSON.stringify({ id: "1", type: 1, token: "t" }))) as unknown as Request<
+        unknown,
+        IncomingRequestCfProperties
+      >,
       env,
       ctx
     );
@@ -44,7 +47,10 @@ describe("index.fetch", () => {
     const env = makeEnv({ DISCORD_PUBLIC_KEY: publicKeyHex });
     const ctx = createExecutionContext();
     const res = await worker.fetch(
-      await signedRequest(pair, JSON.stringify({ id: "1", type: 1, token: "t" }), true),
+      (await signedRequest(pair, JSON.stringify({ id: "1", type: 1, token: "t" }), true)) as unknown as Request<
+        unknown,
+        IncomingRequestCfProperties
+      >,
       env,
       ctx
     );
