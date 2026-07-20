@@ -23,8 +23,13 @@ export class DiscordApi {
     }
     if (!res || res.status >= 500 || res.status === 429) {
       await new Promise((r) => setTimeout(r, 300));
-      res = await doFetch();
+      try {
+        res = await doFetch();
+      } catch {
+        res = undefined;
+      }
     }
+    if (!res) throw new Error(`Discord API ${method} ${path} 실패: 네트워크 오류`);
     if (!res.ok) throw new Error(`Discord API ${method} ${path} 실패: ${res.status}`);
     return res.status === 204 ? null : res.json();
   }

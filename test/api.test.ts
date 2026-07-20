@@ -46,4 +46,36 @@ describe("DiscordApi", () => {
     expect(seen[0].url).toBe("https://discord.com/api/v10/channels/chan-1/messages/msg-9/threads");
     expect(JSON.parse(String(seen[0].init.body))).toEqual({ name: "7월 3주차 글쓰기", auto_archive_duration: 10080 });
   });
+  it("네트워크 오류가 나면 1회 재시도 후 성공", async () => {
+    let calls = 0;
+    const fetcher: Fetcher = async () => {
+      calls++;
+      if (calls === 1) throw new TypeError("network down");
+      return new Response(JSON.stringify({ id: "42" }), { status: 200 });
+    };
+    const api = new DiscordApi("tok", fetcher);
+    await expect(api.sendMessage("chan-1", { content: "hi" })).resolves.toEqual({ id: "42" });
+    expect(calls).toBe(2);
+  });
+  it("재시도까지 네트워크 오류면 균일한 에러 형태로 throw", async () => {
+    let calls = 0;
+    const fetcher: Fetcher = async () => {
+      calls++;
+      throw new TypeError("network down");
+    };
+    const api = new DiscordApi("tok", fetcher);
+    await expect(api.sendMessage("chan-1", { content: "hi" })).rejects.toThrow("실패: 네트워크 오류");
+    expect(calls).toBe(2);
+  });
+  it("429도 1회 재시도한다", async () => {
+    const { fetcher, seen } = fetcherWithStatuses([429, 200]);
+    const api = new DiscordApi("tok", fetcher);
+    await api.sendMessage("chan-1", { content: "hi" });
+    expect(seen).toHaveLength(2);
+  });
+  it("204는 null을 돌려준다", async () => {
+    const { fetcher } = fetcherWithStatuses([204]);
+    const api = new DiscordApi("tok", fetcher);
+    await expect(api.sendMessage("chan-1", { content: "hi" })).resolves.toBeNull();
+  });
 });
