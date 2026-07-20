@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as q from "../src/db/queries";
 import type { DiscordApi } from "../src/discord/api";
 import { settleSweep, type JobDeps } from "../src/jobs/settle";
@@ -91,7 +91,10 @@ describe("settleSweep", () => {
       sendMessage: async () => { throw new Error("Discord 500"); },
       createThread: async () => { throw new Error("unused"); },
     } as unknown as DiscordApi;
-    await expect(settleSweep(jobDeps(throwingApi))).rejects.toThrow("Discord 500");
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    await settleSweep(jobDeps(throwingApi)); // 실패는 사이클 단위로 격리되어 sweep 자체는 완료된다
+    expect(errSpy).toHaveBeenCalled();
+    errSpy.mockRestore();
     expect(await q.getPenaltyBalance(env.DB, "u1")).toBe(10000); // 원장은 이미 기록
     expect((await q.getCycleByWeekStart(env.DB, "2026-07-13"))?.settled_at).toBeNull();
 
@@ -101,5 +104,42 @@ describe("settleSweep", () => {
     expect(await q.getPenaltyBalance(env.DB, "u1")).toBe(10000);
     expect(deps.calls).toHaveLength(1);
     expect((await q.getCycleByWeekStart(env.DB, "2026-07-13"))?.settled_at).not.toBeNull();
+  });
+
+  it("한 사이클의 공지 실패가 다른 사이클 정산을 막지 않는다", async () => {
+    const c1 = await q.createCycle(env.DB, {
+      weekStart: "2026-07-06", goalCount: 1, penaltyPerPost: 10000,
+      channelId: CHANNEL_ID, threadId: "thread-OLD1", createdBy: "user:u1", createdAt: NOW_ISO,
+    });
+    const c2 = await q.createCycle(env.DB, {
+      weekStart: "2026-07-13", goalCount: 1, penaltyPerPost: 10000,
+      channelId: CHANNEL_ID, threadId: "thread-OLD2", createdBy: "user:u1", createdAt: NOW_ISO,
+    });
+    await q.addParticipant(env.DB, c1.id, "u1", "manual", NOW_ISO);
+    await q.addParticipant(env.DB, c2.id, "u2", "manual", NOW_ISO);
+
+    const sent: string[] = [];
+    const api = {
+      async sendMessage(channelId: string) {
+        if (channelId === "thread-OLD1") throw new Error("Discord 500");
+        sent.push(channelId);
+        return { id: "1" };
+      },
+      async createThread() {
+        throw new Error("unused");
+      },
+    } as unknown as DiscordApi;
+
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    await settleSweep({ env: makeEnv(), db: env.DB, api, now: () => DEFAULT_NOW });
+    errSpy.mockRestore();
+
+    // c1: 원장은 기록됐지만 미정산으로 남아 다음 sweep이 재시도
+    expect(await q.getPenaltyBalance(env.DB, "u1")).toBe(10000);
+    expect((await q.getCycleByWeekStart(env.DB, "2026-07-06"))?.settled_at).toBeNull();
+    // c2: 정상 정산 완료
+    expect(await q.getPenaltyBalance(env.DB, "u2")).toBe(10000);
+    expect((await q.getCycleByWeekStart(env.DB, "2026-07-13"))?.settled_at).not.toBeNull();
+    expect(sent).toEqual(["thread-OLD2"]);
   });
 });
