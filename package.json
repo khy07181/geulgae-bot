@@ -1,0 +1,35 @@
+{
+  "name": "geulgae-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "register": "tsx scripts/register.ts",
+    "migrate:local": "wrangler d1 migrations apply geulgae-bot-db --local",
+    "migrate:remote": "wrangler d1 migrations apply geulgae-bot-db --remote"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "discord-interactions": "^4.4.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.12.21",
+    "@cloudflare/workers-types": "^5.20260719.1",
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.2",
+    "vitest": "^3.2.7",
+    "wrangler": "^4.112.0"
+  }
+}

@@ -1,0 +1,17 @@
+name = "geulgae-bot"
+main = "src/index.ts"
+compatibility_date = "2026-07-01"
+
+[triggers]
+crons = ["5 15 * * *", "0 1 * * 2", "0 1 * * 0"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "geulgae-bot-db"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[vars]
+DISCORD_PUBLIC_KEY = "REPLACE_ME"
+DISCORD_APPLICATION_ID = "REPLACE_ME"
+DISCORD_GUILD_ID = "REPLACE_ME"
+CHANNEL_ID = "REPLACE_ME"
