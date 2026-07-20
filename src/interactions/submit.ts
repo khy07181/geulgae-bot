@@ -48,10 +48,10 @@ async function verifyAndReport(
   try {
     const res = await deps.fetcher(url, { signal: AbortSignal.timeout(5000), redirect: "follow" });
     if (res.ok) {
-      status = "ok";
       const html = await res.text();
       const m = html.match(/<title[^>]*>([^<]*)<\/title>/i);
       title = m ? m[1].trim().slice(0, 100) || null : null;
+      status = "ok";
     }
   } catch {
     // 타임아웃·네트워크 오류 → failed 기록만

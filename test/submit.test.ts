@@ -101,4 +101,24 @@ describe("/인증", () => {
     const body = await readJson(await handleSubmit(submitInteraction("http://a.com/p"), makeDeps()));
     expect(body.data.flags).toBe(64);
   });
+
+  it("res.ok 이후 본문 읽기가 실패해도 failed로 기록된다", async () => {
+    const c = await seedCycle("2026-07-20", "thread-A");
+    await q.addParticipant(env.DB, c.id, "u1", "manual", NOW_ISO);
+    const bodyFailFetcher: typeof fetch = async () => {
+      const res = new Response("ignored", { status: 200 });
+      Object.defineProperty(res, "text", {
+        value: () => Promise.reject(new TypeError("body stream timeout")),
+      });
+      return res;
+    };
+    const deps = makeDeps({ fetcher: bodyFailFetcher });
+    await handleSubmit(submitInteraction("https://slow.com/p"), deps);
+    await waitOnExecutionContext(deps.ctx);
+    const row = await env.DB.prepare("SELECT fetch_status FROM submissions WHERE url = 'https://slow.com/p'")
+      .first<{ fetch_status: string }>();
+    expect(row?.fetch_status).toBe("failed");
+    const followup = deps.calls.find((c2) => c2.method === "sendMessage");
+    expect(JSON.stringify(followup?.args[1])).toContain("인증은 유효");
+  });
 });
