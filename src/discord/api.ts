@@ -5,7 +5,9 @@ export type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<
 export class DiscordApi {
   constructor(
     private token: string,
-    private fetcher: Fetcher = fetch
+    // 전역 fetch를 그대로 담으면 this.fetcher(...) 호출 시 this가 인스턴스로 바인딩되어
+    // workerd가 "Illegal invocation"을 던진다 — 반드시 화살표로 감싼다.
+    private fetcher: Fetcher = (input, init) => fetch(input, init)
   ) {}
 
   private async request(method: string, path: string, body?: unknown): Promise<unknown> {
@@ -18,14 +20,16 @@ export class DiscordApi {
     let res: Response | undefined;
     try {
       res = await doFetch();
-    } catch {
+    } catch (err) {
+      console.error(`Discord API ${method} ${path} 1차 시도 예외:`, err);
       // 네트워크 오류 → 아래에서 1회 재시도
     }
     if (!res || res.status >= 500 || res.status === 429) {
       await new Promise((r) => setTimeout(r, 300));
       try {
         res = await doFetch();
-      } catch {
+      } catch (err) {
+        console.error(`Discord API ${method} ${path} 재시도 예외:`, err);
         res = undefined;
       }
     }

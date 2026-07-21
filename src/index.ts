@@ -26,7 +26,8 @@ export default {
       api: new DiscordApi(env.DISCORD_TOKEN),
       ctx,
       now: () => new Date(),
-      fetcher: fetch,
+      // deps.fetcher(...) 호출 시 this가 deps로 바인딩되므로 전역 fetch를 직접 담으면 안 된다 (Illegal invocation)
+      fetcher: (input, init) => fetch(input, init),
     };
     return routeInteraction(interaction, deps);
   },
