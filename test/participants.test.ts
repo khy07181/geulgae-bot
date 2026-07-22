@@ -1,4 +1,4 @@
-import { env } from "cloudflare:test";
+import { env, waitOnExecutionContext } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import * as q from "../src/db/queries";
 import { handleJoinButton } from "../src/interactions/join-button";
@@ -54,14 +54,22 @@ describe("/참여취소", () => {
 });
 
 describe("[참여하기] 버튼", () => {
-  it("클릭하면 참여자로 등록되고 공개 응답", async () => {
+  it("클릭하면 참여자로 등록되고, 본인 확인은 ephemeral·참여 공지는 스레드로 간다", async () => {
     const c = await seedCycle();
+    const deps = makeDeps();
     const body = await readJson(
-      await handleJoinButton(makeComponentInteraction("join:2026-07-20", { userId: "u5" }), makeDeps())
+      await handleJoinButton(makeComponentInteraction("join:2026-07-20", { userId: "u5" }), deps)
     );
-    expect(body.data.flags).toBeUndefined();
-    expect(body.data.content).toContain("<@u5>");
+    expect(body.data.flags).toBe(64);
+    expect(body.data.content).toContain("참여 완료");
     expect((await q.listParticipants(env.DB, c.id)).map((p) => p.joined_via)).toEqual(["button"]);
+
+    await waitOnExecutionContext(deps.ctx);
+    expect(deps.calls).toHaveLength(1);
+    expect(deps.calls[0].args[0]).toBe("thread-A");
+    const content = JSON.stringify(deps.calls[0].args[1]);
+    expect(content).toContain("<@u5>");
+    expect(content).toContain("(현재 1명)");
   });
   it("중복 클릭은 ephemeral '이미 참여 중'", async () => {
     const c = await seedCycle();

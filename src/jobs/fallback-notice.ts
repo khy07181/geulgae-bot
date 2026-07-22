@@ -12,7 +12,7 @@ export async function fallbackNotice(deps: JobDeps): Promise<void> {
   const msg = await deps.api.sendMessage(deps.env.CHANNEL_ID, {
     content:
       `📣 아직 **${label} 목표**가 없어요! 아래 버튼으로 참여하거나 \`/목표설정\`으로 직접 설정해주세요.\n` +
-      `기본 설정: 주당 1개 · 미달 1개당 10,000원 · 일요일 23:59 마감`,
+      `기본 설정: 주당 1개 · 벌금 1개당 10,000원 · 일요일 23:59 마감`,
     components: [
       {
         type: 1,
