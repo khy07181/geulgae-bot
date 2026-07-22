@@ -17,11 +17,18 @@ describe("/현황", () => {
     await q.insertSubmission(env.DB, { cycleId: c.id, userId: "u1", url: "https://a.com/1", submittedAt: NOW_ISO });
     await q.insertSubmission(env.DB, { cycleId: c.id, userId: "u1", url: "https://a.com/2", submittedAt: NOW_ISO });
 
+    // 채널에서 조회 → 본인만 (공개 기록은 스레드에만)
     const body = await readJson(await handleStatus(makeCommandInteraction("현황"), makeDeps()));
+    expect(body.data.flags).toBe(64);
     expect(body.data.content).toContain("<@u1>: 2/2개 ✅");
     expect(body.data.content).toContain("<@u2>: 0/2개");
     expect(body.data.content).toContain("마감까지");
-    expect(body.data.allowed_mentions).toEqual({ parse: [] });
+
+    // 사이클 스레드 안에서 조회 → 공개 + 멘션 알림 차단
+    const inThread = makeCommandInteraction("현황", [], { channelId: "thread-A", parentId: CHANNEL_ID });
+    const pub = await readJson(await handleStatus(inThread, makeDeps()));
+    expect(pub.data.flags).toBeUndefined();
+    expect(pub.data.allowed_mentions).toEqual({ parse: [] });
   });
 
   it("마감된 주차의 스레드에서도 조회는 된다", async () => {

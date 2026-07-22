@@ -18,7 +18,7 @@ const commands = [
     options: [
       { type: STRING, name: "참여자", description: "참여자 멘션 (예: @하영 @민희)", required: true },
       { type: INTEGER, name: "개수", description: "주당 목표 글 개수 (기본 1)", required: false, min_value: 1 },
-      { type: INTEGER, name: "벌금", description: "미달 1개당 벌금, 원 (기본 10000)", required: false, min_value: 0 },
+      { type: INTEGER, name: "벌금", description: "벌금 1개당 금액, 원 (기본 10000)", required: false, min_value: 0 },
       {
         type: STRING, name: "주차", description: "어느 주의 목표인지 (기본: 이번주)", required: false,
         choices: [
@@ -43,6 +43,11 @@ const commands = [
       { type: INTEGER, name: "금액", description: "원 단위, 양수=부과·음수=삭감", required: true },
       { type: STRING, name: "사유", description: "선택 사항", required: false },
     ],
+  },
+  {
+    name: "참여",
+    description: "이번 주 참여자로 등록해요 (본인 또는 다른 멤버)",
+    options: [{ type: USER, name: "대상", description: "등록할 멤버 (기본: 본인)", required: false }],
   },
   {
     name: "참여취소",

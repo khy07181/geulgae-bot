@@ -33,7 +33,7 @@ export const handleGoal: Handler = async (interaction, deps) => {
     const msg = await deps.api.sendMessage(deps.env.CHANNEL_ID, {
       content:
         `📝 **${label} 목표** (${weekStart} 시작)\n` +
-        `목표 주당 ${goalCount}개 · 미달 1개당 ${penaltyPerPost.toLocaleString("ko-KR")}원 · 일요일 23:59 마감`,
+        `목표 주당 ${goalCount}개 · 벌금 1개당 ${penaltyPerPost.toLocaleString("ko-KR")}원 · 일요일 23:59 마감`,
     });
     const thread = await deps.api.createThread(deps.env.CHANNEL_ID, msg.id, `${label} 글쓰기`);
     const cycle = await createCycle(deps.db, {

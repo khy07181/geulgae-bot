@@ -15,14 +15,16 @@ export const handleStatus: Handler = async (interaction, deps) => {
     : `마감까지 ${formatRemaining(cycle.week_start, now)}`;
 
   const participants = await listParticipants(deps.db, cycle.id);
-  if (participants.length === 0) return publicMessage(`**${label} 현황** (${timeNote})\n아직 참여자가 없어요.`);
-
   const counts = await countSubmissionsByUser(deps.db, cycle.id);
   const lines = participants.map((p) => {
     const n = counts.get(p.user_id) ?? 0;
     return `- <@${p.user_id}>: ${n}/${cycle.goal_count}개${n >= cycle.goal_count ? " ✅" : ""}`;
   });
-  return publicMessage(`**${label} 현황** (${timeNote})\n${lines.join("\n")}`, {
-    allowed_mentions: { parse: [] },
-  });
+  const body =
+    `**${label} 현황** (${timeNote})\n` +
+    (participants.length === 0 ? "아직 참여자가 없어요." : lines.join("\n"));
+
+  // 공개 기록은 스레드에만 쌓는다: 사이클 스레드 안에서 조회하면 공개, 채널에서는 본인만.
+  const inThread = interaction.channel?.id === cycle.thread_id;
+  return inThread ? publicMessage(body, { allowed_mentions: { parse: [] } }) : ephemeral(body);
 };

@@ -1,6 +1,7 @@
 import type { DiscordApi, Fetcher } from "./discord/api";
 import { ephemeral, pong } from "./discord/replies";
 import { handleGoal } from "./interactions/goal";
+import { handleJoin } from "./interactions/join";
 import { handleJoinButton } from "./interactions/join-button";
 import { handlePenaltyAdjust, handlePenaltyStatus } from "./interactions/penalty";
 import { handleStatus } from "./interactions/status";
@@ -24,6 +25,7 @@ const commandHandlers: Record<string, Handler> = {
   인증: handleSubmit,
   목표설정: handleGoal,
   현황: handleStatus,
+  참여: handleJoin,
   참여취소: handleWithdraw,
   벌금현황: handlePenaltyStatus,
   벌금조정: handlePenaltyAdjust,

@@ -20,13 +20,13 @@ function submitInteraction(url: string, opts: Parameters<typeof makeCommandInter
 }
 
 describe("/인증", () => {
-  it("참여자의 인증: 공개 응답 + 저장 + 백그라운드 검증 후 스레드 후속 메시지", async () => {
+  it("참여자의 인증: 본인 ephemeral 확인 + 스레드에 공개 알림·제목 후속", async () => {
     const c = await seedCycle("2026-07-20", "thread-A");
     await q.addParticipant(env.DB, c.id, "u1", "manual", NOW_ISO);
     const deps = makeDeps();
     const res = await handleSubmit(submitInteraction("https://Blog.com/post/"), deps);
     const body = await readJson(res);
-    expect(body.data.flags).toBeUndefined(); // 공개
+    expect(body.data.flags).toBe(64); // 본인 확인은 ephemeral
     expect(body.data.content).toContain("1/1개");
 
     await waitOnExecutionContext(deps.ctx);
@@ -35,8 +35,11 @@ describe("/인증", () => {
     expect(row?.url).toBe("https://blog.com/post"); // 정규화 저장
     expect(row?.fetch_status).toBe("ok");
     expect(row?.fetch_title).toBe("테스트 글");
-    const followup = deps.calls.find((c2) => c2.method === "sendMessage");
-    expect(followup?.args[0]).toBe("thread-A");
+    // 스레드에 [인증 공개 알림, 제목 후속] 순서로 두 건
+    expect(deps.calls.map((c2) => c2.args[0])).toEqual(["thread-A", "thread-A"]);
+    expect(JSON.stringify(deps.calls[0].args[1])).toContain("<@u1>");
+    expect(JSON.stringify(deps.calls[0].args[1])).toContain("https://blog.com/post");
+    expect(JSON.stringify(deps.calls[1].args[1])).toContain("테스트 글");
   });
 
   it("같은 링크 재제출은 ephemeral 거부", async () => {
@@ -69,7 +72,7 @@ describe("/인증", () => {
     const next = await seedCycle("2026-07-27", "thread-B");
     const i = submitInteraction("https://a.com/next-week", { channelId: "thread-B", parentId: CHANNEL_ID });
     const body = await readJson(await handleSubmit(i, makeDeps()));
-    expect(body.data.flags).toBeUndefined();
+    expect(body.data.content).toContain("인증 완료");
     const counts = await q.countSubmissionsByUser(env.DB, next.id);
     expect(counts.get("u1")).toBe(1);
   });
@@ -92,8 +95,8 @@ describe("/인증", () => {
     const row = await env.DB.prepare("SELECT fetch_status FROM submissions WHERE url = 'https://dead.com/p'")
       .first<{ fetch_status: string }>();
     expect(row?.fetch_status).toBe("failed");
-    const followup = deps.calls.find((c2) => c2.method === "sendMessage");
-    expect(JSON.stringify(followup?.args[1])).toContain("인증은 유효");
+    // calls[0]은 인증 공개 알림, calls[1]이 검증 실패 안내
+    expect(JSON.stringify(deps.calls[1].args[1])).toContain("인증은 유효");
   });
 
   it("http 링크는 ephemeral 거부", async () => {
@@ -109,7 +112,6 @@ describe("/인증", () => {
     const i = submitInteraction("https://a.com/category-case");
     expect(i.channel?.parent_id).toBe("category-1");
     const body = await readJson(await handleSubmit(i, makeDeps()));
-    expect(body.data.flags).toBeUndefined();
     expect(body.data.content).toContain("1/1개");
   });
 
@@ -143,7 +145,6 @@ describe("/인증", () => {
     const row = await env.DB.prepare("SELECT fetch_status FROM submissions WHERE url = 'https://slow.com/p'")
       .first<{ fetch_status: string }>();
     expect(row?.fetch_status).toBe("failed");
-    const followup = deps.calls.find((c2) => c2.method === "sendMessage");
-    expect(JSON.stringify(followup?.args[1])).toContain("인증은 유효");
+    expect(JSON.stringify(deps.calls[1].args[1])).toContain("인증은 유효");
   });
 });
