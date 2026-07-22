@@ -1,9 +1,10 @@
 import { countSubmissionsByUser, listParticipants, removeParticipant } from "../db/queries";
 import { isPastDeadline, weekLabel } from "../domain/cycle";
-import { ephemeral } from "../discord/replies";
+import { deferredEphemeral, ephemeral } from "../discord/replies";
 import type { Handler } from "../router";
 import { getStringOption, interactionUserId } from "../types";
 import { resolveCycle } from "./resolve-cycle";
+import { settleDeferred } from "./silent";
 
 export const handleWithdraw: Handler = async (interaction, deps) => {
   const now = deps.now();
@@ -21,14 +22,19 @@ export const handleWithdraw: Handler = async (interaction, deps) => {
 
   await removeParticipant(deps.db, cycle.id, target);
   const label = weekLabel(cycle.week_start);
-  // 공개 알림은 주차 스레드에 남긴다 (채널 깔끔 유지)
+  // 성공 시 실행자에게는 조용히 처리하고, 공개 알림만 주차 스레드에 남긴다.
   deps.ctx.waitUntil(
-    deps.api
-      .sendMessage(cycle.thread_id, {
-        content: `👋 <@${target}>님이 ${label} 참여를 취소했어요.`,
-        allowed_mentions: { parse: [] },
-      })
-      .catch((err) => console.error("참여취소 공지 전송 실패:", err))
+    settleDeferred(
+      deps,
+      interaction,
+      async () => {
+        await deps.api.sendMessage(cycle.thread_id, {
+          content: `👋 <@${target}>님이 ${label} 참여를 취소했어요.`,
+          allowed_mentions: { parse: [] },
+        });
+      },
+      "취소는 됐어요. 다만 스레드 알림 전송에는 실패했어요."
+    )
   );
-  return ephemeral(`<@${target}>님을 ${label} 참여자에서 뺐어요.`);
+  return deferredEphemeral();
 };

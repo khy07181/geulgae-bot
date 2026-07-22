@@ -51,4 +51,14 @@ export class DiscordApi {
       auto_archive_duration: 10080,
     }) as Promise<{ id: string }>;
   }
+
+  // deferred 응답의 원본("생각 중...")을 삭제한다 — 조용한 처리의 마무리.
+  deleteOriginalResponse(applicationId: string, token: string): Promise<null> {
+    return this.request("DELETE", `/webhooks/${applicationId}/${token}/messages/@original`) as Promise<null>;
+  }
+
+  // deferred 응답의 원본을 안내 문구로 교체한다 — 백그라운드 실패 시 피드백용.
+  editOriginalResponse(applicationId: string, token: string, content: string): Promise<unknown> {
+    return this.request("PATCH", `/webhooks/${applicationId}/${token}/messages/@original`, { content });
+  }
 }

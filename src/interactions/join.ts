@@ -1,11 +1,13 @@
 import { addParticipant, listParticipants } from "../db/queries";
 import { isPastDeadline, weekLabel } from "../domain/cycle";
-import { ephemeral } from "../discord/replies";
+import { deferredEphemeral, ephemeral } from "../discord/replies";
 import type { Handler } from "../router";
 import { getStringOption, interactionUserId } from "../types";
 import { resolveCycle } from "./resolve-cycle";
+import { settleDeferred } from "./silent";
 
 // /참여 [대상] — 본인 또는 다른 멤버를 귀속 주차의 참여자로 등록한다.
+// 성공 시 실행자에게는 조용히 처리하고, 공개 알림만 주차 스레드에 남긴다.
 export const handleJoin: Handler = async (interaction, deps) => {
   const now = deps.now();
   const cycle = await resolveCycle(deps.db, interaction, now);
@@ -18,14 +20,18 @@ export const handleJoin: Handler = async (interaction, deps) => {
 
   const label = weekLabel(cycle.week_start);
   const count = (await listParticipants(deps.db, cycle.id)).length;
-  // 공개 알림은 주차 스레드에 남긴다 (채널 깔끔 유지)
   deps.ctx.waitUntil(
-    deps.api
-      .sendMessage(cycle.thread_id, {
-        content: `<@${target}>님이 ${label}에 참여했어요! (현재 ${count}명)`,
-        allowed_mentions: { parse: [] },
-      })
-      .catch((err) => console.error("참여 공지 전송 실패:", err))
+    settleDeferred(
+      deps,
+      interaction,
+      async () => {
+        await deps.api.sendMessage(cycle.thread_id, {
+          content: `<@${target}>님이 ${label}에 참여했어요! (현재 ${count}명)`,
+          allowed_mentions: { parse: [] },
+        });
+      },
+      "등록은 됐어요. 다만 스레드 알림 전송에는 실패했어요."
+    )
   );
-  return ephemeral(`<@${target}>님을 ${label} 참여자로 등록했어요!`);
+  return deferredEphemeral();
 };

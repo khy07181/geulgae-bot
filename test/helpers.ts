@@ -34,6 +34,14 @@ export function fakeApi(): { calls: ApiCall[]; api: DiscordApi } {
       calls.push({ method: "createThread", args: [channelId, messageId, name] });
       return { id: `thread-${++nextId}` };
     },
+    async deleteOriginalResponse(applicationId: string, token: string) {
+      calls.push({ method: "deleteOriginalResponse", args: [applicationId, token] });
+      return null;
+    },
+    async editOriginalResponse(applicationId: string, token: string, content: string) {
+      calls.push({ method: "editOriginalResponse", args: [applicationId, token, content] });
+      return {};
+    },
   };
   return { calls, api: api as unknown as DiscordApi };
 }

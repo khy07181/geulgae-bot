@@ -1,6 +1,6 @@
 import { addParticipant, getCycleByWeekStart, listParticipants } from "../db/queries";
 import { isPastDeadline, weekLabel } from "../domain/cycle";
-import { ephemeral } from "../discord/replies";
+import { deferredUpdate, ephemeral } from "../discord/replies";
 import type { Handler } from "../router";
 import { interactionUserId } from "../types";
 
@@ -18,8 +18,7 @@ export const handleJoinButton: Handler = async (interaction, deps) => {
   if (!added) return ephemeral("이미 참여 중이에요.");
 
   const count = (await listParticipants(deps.db, cycle.id)).length;
-  // 참여 공지는 채널이 아니라 그 주차 스레드에 남긴다 — 채널을 깔끔하게 유지하고
-  // 주차별 대화가 스레드 안에서 시작·마무리되도록.
+  // 참여 공지는 그 주차 스레드에만 남기고, 누른 본인에게는 아무 메시지도 띄우지 않는다(타입 6 무응답 ACK).
   deps.ctx.waitUntil(
     deps.api
       .sendMessage(cycle.thread_id, {
@@ -28,5 +27,5 @@ export const handleJoinButton: Handler = async (interaction, deps) => {
       })
       .catch((err) => console.error("참여 공지 전송 실패:", err))
   );
-  return ephemeral(`${weekLabel(weekStart)} 참여 완료! 글을 쓰면 스레드에서 \`/인증\`으로 인증해주세요.`);
+  return deferredUpdate();
 };

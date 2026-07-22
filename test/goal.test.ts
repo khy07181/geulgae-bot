@@ -1,4 +1,4 @@
-import { env } from "cloudflare:test";
+import { env, waitOnExecutionContext } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import * as q from "../src/db/queries";
 import { handleGoal, parseMentions } from "../src/interactions/goal";
@@ -23,12 +23,15 @@ describe("parseMentions", () => {
 });
 
 describe("/목표설정", () => {
-  it("신규: 공지 → 스레드 → 사이클 → 시작 안내 순으로 생성", async () => {
+  it("신규: 조용한 처리 + 공지 → 스레드 → 사이클 → 시작 안내 순으로 생성", async () => {
     const deps = makeDeps();
     const body = await readJson(await handleGoal(goalInteraction("<@111> <@222>", { 개수: 2 }), deps));
-    expect(body.data.content).toContain("참여자 2명");
+    expect(body.type).toBe(5); // 성공 응답 대신 채널 공지가 공개 기록
 
-    expect(deps.calls.map((c) => c.method)).toEqual(["sendMessage", "createThread", "sendMessage"]);
+    await waitOnExecutionContext(deps.ctx);
+    expect(deps.calls.map((c) => c.method)).toEqual([
+      "sendMessage", "createThread", "sendMessage", "deleteOriginalResponse",
+    ]);
     expect(deps.calls[0].args[0]).toBe(CHANNEL_ID); // 목표 공지는 채널에
     expect(deps.calls[1].args[2]).toBe("7월 3주차 글쓰기"); // weekLabel("2026-07-20") = "7월 3주차"
 
@@ -42,22 +45,42 @@ describe("/목표설정", () => {
     expect(JSON.stringify(deps.calls[2].args[1])).toContain("<@111>");
   });
 
-  it("기존 주차: 참여자 추가 + 명시한 설정만 갱신", async () => {
-    await handleGoal(goalInteraction("<@111>"), makeDeps());
+  it("기존 주차: 참여자 추가 + 명시한 설정만 갱신, 알림은 스레드로", async () => {
+    const first = makeDeps();
+    await handleGoal(goalInteraction("<@111>"), first);
+    await waitOnExecutionContext(first.ctx);
+
     const deps = makeDeps();
-    await handleGoal(goalInteraction("<@111> <@333>", { 개수: 3 }), deps);
+    const body = await readJson(await handleGoal(goalInteraction("<@111> <@333>", { 개수: 3 }), deps));
+    expect(body.type).toBe(5);
+    await waitOnExecutionContext(deps.ctx);
+
     const cycle = await q.getCycleByWeekStart(env.DB, "2026-07-20");
     expect(cycle?.goal_count).toBe(3);
     expect(cycle?.penalty_per_post).toBe(10000); // 벌금은 안 줬으니 유지
     expect((await q.listParticipants(env.DB, cycle!.id)).map((p) => p.user_id)).toEqual(["111", "333"]);
-    // 새로 합류한 333만 스레드에 안내
+    // 새로 합류한 333과 설정 변경 내용을 스레드에 안내 (기존 111은 멘션 안 함)
     const notice = deps.calls.find((c) => c.method === "sendMessage");
+    expect(notice?.args[0]).toBe(cycle!.thread_id);
     expect(JSON.stringify(notice?.args[1])).toContain("<@333>");
     expect(JSON.stringify(notice?.args[1])).not.toContain("<@111>");
+    expect(JSON.stringify(notice?.args[1])).toContain("설정 갱신");
+  });
+
+  it("기존 주차: 아무 변화가 없으면 본인에게만 안내", async () => {
+    const first = makeDeps();
+    await handleGoal(goalInteraction("<@111>"), first);
+    await waitOnExecutionContext(first.ctx);
+
+    const body = await readJson(await handleGoal(goalInteraction("<@111>"), makeDeps()));
+    expect(body.data.flags).toBe(64);
+    expect(body.data.content).toContain("없어요");
   });
 
   it("주차:다음주는 다음 주 월요일로 생성", async () => {
-    await handleGoal(goalInteraction("<@111>", { 주차: "다음주" }), makeDeps());
+    const deps = makeDeps();
+    await handleGoal(goalInteraction("<@111>", { 주차: "다음주" }), deps);
+    await waitOnExecutionContext(deps.ctx);
     expect(await q.getCycleByWeekStart(env.DB, "2026-07-27")).not.toBeNull();
   });
 

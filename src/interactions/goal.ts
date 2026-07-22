@@ -1,8 +1,9 @@
 import { addParticipant, createCycle, getCycleByWeekStart, updateCycleSettings } from "../db/queries";
 import { nextWeekStartOf, weekLabel, weekStartOf } from "../domain/cycle";
-import { ephemeral, publicMessage } from "../discord/replies";
+import { deferredEphemeral, ephemeral } from "../discord/replies";
 import type { Handler } from "../router";
 import { getIntegerOption, getStringOption, interactionUserId } from "../types";
+import { settleDeferred } from "./silent";
 
 export function parseMentions(text: string): string[] {
   return [...new Set([...text.matchAll(/<@!?(\d+)>/g)].map((m) => m[1]))];
@@ -30,24 +31,35 @@ export const handleGoal: Handler = async (interaction, deps) => {
   if (!existing) {
     const goalCount = goalOpt ?? 1;
     const penaltyPerPost = penaltyOpt ?? 10000;
-    const msg = await deps.api.sendMessage(deps.env.CHANNEL_ID, {
-      content:
-        `📝 **${label} 목표** (${weekStart} 시작)\n` +
-        `목표 주당 ${goalCount}개 · 벌금 1개당 ${penaltyPerPost.toLocaleString("ko-KR")}원 · 일요일 23:59 마감`,
-    });
-    const thread = await deps.api.createThread(deps.env.CHANNEL_ID, msg.id, `${label} 글쓰기`);
-    const cycle = await createCycle(deps.db, {
-      weekStart, goalCount, penaltyPerPost,
-      channelId: deps.env.CHANNEL_ID, threadId: thread.id,
-      createdBy: `user:${interactionUserId(interaction)}`, createdAt: nowIso,
-    });
-    for (const id of mentions) await addParticipant(deps.db, cycle.id, id, "manual", nowIso);
-    await deps.api.sendMessage(thread.id, {
-      content:
-        `${mentions.map((id) => `<@${id}>`).join(" ")}\n` +
-        `${label} 목표 시작! 이 스레드에서 \`/인증\`으로 글을 인증해주세요.`,
-    });
-    return publicMessage(`${label} 목표를 설정했어요. 참여자 ${mentions.length}명 · 주당 ${goalCount}개.`);
+    // 목표 공지(채널) 자체가 공개 기록이므로 별도의 성공 응답은 남기지 않는다(조용한 처리).
+    // REST 3회 호출을 응답 이후로 미뤄 3초 규칙 부담도 없앤다.
+    deps.ctx.waitUntil(
+      settleDeferred(
+        deps,
+        interaction,
+        async () => {
+          const msg = await deps.api.sendMessage(deps.env.CHANNEL_ID, {
+            content:
+              `📝 **${label} 목표** (${weekStart} 시작)\n` +
+              `목표 주당 ${goalCount}개 · 벌금 1개당 ${penaltyPerPost.toLocaleString("ko-KR")}원 · 일요일 23:59 마감`,
+          });
+          const thread = await deps.api.createThread(deps.env.CHANNEL_ID, msg.id, `${label} 글쓰기`);
+          const cycle = await createCycle(deps.db, {
+            weekStart, goalCount, penaltyPerPost,
+            channelId: deps.env.CHANNEL_ID, threadId: thread.id,
+            createdBy: `user:${interactionUserId(interaction)}`, createdAt: nowIso,
+          });
+          for (const id of mentions) await addParticipant(deps.db, cycle.id, id, "manual", nowIso);
+          await deps.api.sendMessage(thread.id, {
+            content:
+              `${mentions.map((id) => `<@${id}>`).join(" ")}\n` +
+              `${label} 목표 시작! 이 스레드에서 \`/인증\`으로 글을 인증해주세요.`,
+          });
+        },
+        `${label} 목표 생성에 실패했어요. 잠시 후 다시 시도해주세요.`
+      )
+    );
+    return deferredEphemeral();
   }
 
   await updateCycleSettings(deps.db, existing.id, {
@@ -58,10 +70,28 @@ export const handleGoal: Handler = async (interaction, deps) => {
   for (const id of mentions) {
     if (await addParticipant(deps.db, existing.id, id, "manual", nowIso)) added.push(id);
   }
+
+  const changes: string[] = [];
   if (added.length > 0) {
-    await deps.api.sendMessage(existing.thread_id, {
-      content: `${added.map((id) => `<@${id}>`).join(" ")} ${label}에 합류했어요!`,
-    });
+    changes.push(`${added.map((id) => `<@${id}>`).join(" ")} ${label}에 합류했어요!`);
   }
-  return publicMessage(`${label} 목표를 갱신했어요. (참여자 ${added.length}명 추가)`);
+  if (goalOpt !== null || penaltyOpt !== null) {
+    const goalCount = goalOpt ?? existing.goal_count;
+    const penaltyPerPost = penaltyOpt ?? existing.penalty_per_post;
+    changes.push(`⚙️ 설정 갱신: 주당 ${goalCount}개 · 벌금 1개당 ${penaltyPerPost.toLocaleString("ko-KR")}원`);
+  }
+  // 실제로 바뀐 게 없으면 조용히 지나가는 대신 실행자에게만 알려준다 (유의미한 피드백).
+  if (changes.length === 0) return ephemeral("추가된 참여자도 변경된 설정도 없어요.");
+
+  deps.ctx.waitUntil(
+    settleDeferred(
+      deps,
+      interaction,
+      async () => {
+        await deps.api.sendMessage(existing.thread_id, { content: changes.join("\n") });
+      },
+      "갱신은 됐어요. 다만 스레드 알림 전송에는 실패했어요."
+    )
+  );
+  return deferredEphemeral();
 };

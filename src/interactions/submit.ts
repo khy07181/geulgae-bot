@@ -3,10 +3,11 @@ import {
 } from "../db/queries";
 import { isPastDeadline } from "../domain/cycle";
 import { normalizeUrl } from "../domain/url";
-import { ephemeral } from "../discord/replies";
+import { deferredEphemeral, ephemeral } from "../discord/replies";
 import type { Deps, Handler } from "../router";
 import { getStringOption, interactionUserId } from "../types";
 import { resolveCycle } from "./resolve-cycle";
+import { settleDeferred } from "./silent";
 
 export const handleSubmit: Handler = async (interaction, deps) => {
   const raw = getStringOption(interaction, "링크");
@@ -31,32 +32,33 @@ export const handleSubmit: Handler = async (interaction, deps) => {
 
   const count = (await countSubmissionsByUser(deps.db, cycle.id)).get(userId) ?? 0;
   const joinedNote = newlyJoined ? " (참여자로 자동 등록했어요)" : "";
+  // 성공 시 실행자에게는 조용히 처리. 공개 알림(스레드) → 접속 확인 → 제목 후속 순서.
   deps.ctx.waitUntil(
-    announceAndVerify(deps, cycle, inserted.id, norm.url, userId, count, joinedNote)
+    (async () => {
+      await settleDeferred(
+        deps,
+        interaction,
+        async () => {
+          await deps.api.sendMessage(cycle.thread_id, {
+            content: `📝 <@${userId}>님 인증 완료! 현재 ${count}/${cycle.goal_count}개${joinedNote}\n${norm.url}`,
+            allowed_mentions: { parse: [] },
+          });
+        },
+        `인증은 저장됐어요 (현재 ${count}/${cycle.goal_count}개). 다만 스레드 알림 전송에는 실패했어요.`
+      );
+      await verifyAndReport(deps, cycle, inserted.id, norm.url);
+    })()
   );
-  return ephemeral(`인증 완료! 현재 ${count}/${cycle.goal_count}개${joinedNote}`);
+  return deferredEphemeral();
 };
 
-// 공개 기록은 주차 스레드에 남긴다: 인증 알림 → best-effort 접속 확인 → 제목 후속 순서.
-// 스펙 §5.3-7: 접속 확인은 실패해도 인증에 영향 없음.
-async function announceAndVerify(
+// 스펙 §5.3-7: best-effort 접속 확인. 실패해도 인증에 영향 없음.
+async function verifyAndReport(
   deps: Deps,
   cycle: CycleRow,
   submissionId: number,
-  url: string,
-  userId: string,
-  count: number,
-  joinedNote: string
+  url: string
 ): Promise<void> {
-  try {
-    await deps.api.sendMessage(cycle.thread_id, {
-      content: `📝 <@${userId}>님 인증 완료! 현재 ${count}/${cycle.goal_count}개${joinedNote}\n${url}`,
-      allowed_mentions: { parse: [] },
-    });
-  } catch (err) {
-    console.error("인증 공지 전송 실패:", err);
-  }
-
   let status: "ok" | "failed" = "failed";
   let title: string | null = null;
   try {

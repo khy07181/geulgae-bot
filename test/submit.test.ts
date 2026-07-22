@@ -20,14 +20,14 @@ function submitInteraction(url: string, opts: Parameters<typeof makeCommandInter
 }
 
 describe("/인증", () => {
-  it("참여자의 인증: 본인 ephemeral 확인 + 스레드에 공개 알림·제목 후속", async () => {
+  it("참여자의 인증: 조용한 처리(원본 삭제) + 스레드에 공개 알림·제목 후속", async () => {
     const c = await seedCycle("2026-07-20", "thread-A");
     await q.addParticipant(env.DB, c.id, "u1", "manual", NOW_ISO);
     const deps = makeDeps();
     const res = await handleSubmit(submitInteraction("https://Blog.com/post/"), deps);
     const body = await readJson(res);
-    expect(body.data.flags).toBe(64); // 본인 확인은 ephemeral
-    expect(body.data.content).toContain("1/1개");
+    expect(body.type).toBe(5); // deferred ephemeral — 이후 원본 삭제로 무흔적
+    expect(body.data.flags).toBe(64);
 
     await waitOnExecutionContext(deps.ctx);
     const row = await env.DB.prepare("SELECT * FROM submissions WHERE user_id = 'u1'")
@@ -35,11 +35,13 @@ describe("/인증", () => {
     expect(row?.url).toBe("https://blog.com/post"); // 정규화 저장
     expect(row?.fetch_status).toBe("ok");
     expect(row?.fetch_title).toBe("테스트 글");
-    // 스레드에 [인증 공개 알림, 제목 후속] 순서로 두 건
-    expect(deps.calls.map((c2) => c2.args[0])).toEqual(["thread-A", "thread-A"]);
-    expect(JSON.stringify(deps.calls[0].args[1])).toContain("<@u1>");
-    expect(JSON.stringify(deps.calls[0].args[1])).toContain("https://blog.com/post");
-    expect(JSON.stringify(deps.calls[1].args[1])).toContain("테스트 글");
+    // 스레드에 [인증 공개 알림, 제목 후속] 순서로 두 건 + 원본 삭제 1건
+    const sends = deps.calls.filter((c2) => c2.method === "sendMessage");
+    expect(sends.map((c2) => c2.args[0])).toEqual(["thread-A", "thread-A"]);
+    expect(JSON.stringify(sends[0].args[1])).toContain("<@u1>");
+    expect(JSON.stringify(sends[0].args[1])).toContain("https://blog.com/post");
+    expect(JSON.stringify(sends[1].args[1])).toContain("테스트 글");
+    expect(deps.calls.some((c2) => c2.method === "deleteOriginalResponse")).toBe(true);
   });
 
   it("같은 링크 재제출은 ephemeral 거부", async () => {
@@ -53,10 +55,11 @@ describe("/인증", () => {
 
   it("비참여자는 자동으로 참여자 등록 후 인증된다", async () => {
     await seedCycle("2026-07-20", "thread-A");
-    const body = await readJson(
-      await handleSubmit(submitInteraction("https://a.com/p2", { userId: "u9" }), makeDeps())
-    );
-    expect(body.data.content).toContain("자동 등록");
+    const deps = makeDeps();
+    await handleSubmit(submitInteraction("https://a.com/p2", { userId: "u9" }), deps);
+    await waitOnExecutionContext(deps.ctx);
+    const sends = deps.calls.filter((c2) => c2.method === "sendMessage");
+    expect(JSON.stringify(sends[0].args[1])).toContain("자동 등록");
     const parts = await q.listParticipants(env.DB, (await q.getCycleByWeekStart(env.DB, "2026-07-20"))!.id);
     expect(parts).toEqual([{ user_id: "u9", joined_via: "submit" }]);
   });
@@ -72,7 +75,7 @@ describe("/인증", () => {
     const next = await seedCycle("2026-07-27", "thread-B");
     const i = submitInteraction("https://a.com/next-week", { channelId: "thread-B", parentId: CHANNEL_ID });
     const body = await readJson(await handleSubmit(i, makeDeps()));
-    expect(body.data.content).toContain("인증 완료");
+    expect(body.type).toBe(5);
     const counts = await q.countSubmissionsByUser(env.DB, next.id);
     expect(counts.get("u1")).toBe(1);
   });
@@ -90,13 +93,14 @@ describe("/인증", () => {
     await q.addParticipant(env.DB, c.id, "u1", "manual", NOW_ISO);
     const deps = makeDeps({ fetcher: fetcherReturning(500) });
     const body = await readJson(await handleSubmit(submitInteraction("https://dead.com/p"), deps));
-    expect(body.data.content).toContain("1/1개"); // 인증 자체는 성공
+    expect(body.type).toBe(5); // 인증 자체는 성공 (조용한 처리)
     await waitOnExecutionContext(deps.ctx);
     const row = await env.DB.prepare("SELECT fetch_status FROM submissions WHERE url = 'https://dead.com/p'")
       .first<{ fetch_status: string }>();
     expect(row?.fetch_status).toBe("failed");
-    // calls[0]은 인증 공개 알림, calls[1]이 검증 실패 안내
-    expect(JSON.stringify(deps.calls[1].args[1])).toContain("인증은 유효");
+    // sends[0]은 인증 공개 알림, sends[1]이 검증 실패 안내
+    const sends = deps.calls.filter((c2) => c2.method === "sendMessage");
+    expect(JSON.stringify(sends[1].args[1])).toContain("인증은 유효");
   });
 
   it("http 링크는 ephemeral 거부", async () => {
@@ -112,7 +116,8 @@ describe("/인증", () => {
     const i = submitInteraction("https://a.com/category-case");
     expect(i.channel?.parent_id).toBe("category-1");
     const body = await readJson(await handleSubmit(i, makeDeps()));
-    expect(body.data.content).toContain("1/1개");
+    expect(body.type).toBe(5); // 거절(ephemeral 4)이 아니라 정상 처리
+    expect((await q.countSubmissionsByUser(env.DB, c.id)).get("u1")).toBe(1);
   });
 
   it("비참여자의 중복 재제출은 거부되고 유령 참여자로 남지 않는다", async () => {
@@ -145,6 +150,7 @@ describe("/인증", () => {
     const row = await env.DB.prepare("SELECT fetch_status FROM submissions WHERE url = 'https://slow.com/p'")
       .first<{ fetch_status: string }>();
     expect(row?.fetch_status).toBe("failed");
-    expect(JSON.stringify(deps.calls[1].args[1])).toContain("인증은 유효");
+    const sends = deps.calls.filter((c2) => c2.method === "sendMessage");
+    expect(JSON.stringify(sends[1].args[1])).toContain("인증은 유효");
   });
 });

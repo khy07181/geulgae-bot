@@ -39,6 +39,20 @@ describe("DiscordApi", () => {
     await expect(api.sendMessage("chan-1", { content: "hi" })).rejects.toThrow("실패: 404");
     expect(seen).toHaveLength(1);
   });
+  it("deleteOriginalResponse는 웹훅 원본을 삭제한다 (204 → null)", async () => {
+    const { fetcher, seen } = fetcherWithStatuses([204]);
+    const api = new DiscordApi("tok", fetcher);
+    await expect(api.deleteOriginalResponse("app-1", "tok-1")).resolves.toBeNull();
+    expect(seen[0].url).toBe("https://discord.com/api/v10/webhooks/app-1/tok-1/messages/@original");
+    expect(seen[0].init.method).toBe("DELETE");
+  });
+  it("editOriginalResponse는 원본을 안내 문구로 교체한다", async () => {
+    const { fetcher, seen } = fetcherWithStatuses([200]);
+    const api = new DiscordApi("tok", fetcher);
+    await api.editOriginalResponse("app-1", "tok-1", "실패 안내");
+    expect(seen[0].init.method).toBe("PATCH");
+    expect(JSON.parse(String(seen[0].init.body))).toEqual({ content: "실패 안내" });
+  });
   it("createThread는 메시지에 스레드를 만든다", async () => {
     const { fetcher, seen } = fetcherWithStatuses([200]);
     const api = new DiscordApi("tok", fetcher);
