@@ -88,10 +88,10 @@ describe("/인증", () => {
     expect(body.data.content).toContain("마감");
   });
 
-  it("링크 접속 실패여도 인증은 유효, 스레드에 실패 안내", async () => {
+  it("링크가 404여도 인증은 유효, 스레드에 확인 요청 안내", async () => {
     const c = await seedCycle("2026-07-20", "thread-A");
     await q.addParticipant(env.DB, c.id, "u1", "manual", NOW_ISO);
-    const deps = makeDeps({ fetcher: fetcherReturning(500) });
+    const deps = makeDeps({ fetcher: fetcherReturning(404) });
     const body = await readJson(await handleSubmit(submitInteraction("https://dead.com/p"), deps));
     expect(body.type).toBe(5); // 인증 자체는 성공 (조용한 처리)
     await waitOnExecutionContext(deps.ctx);
@@ -100,7 +100,55 @@ describe("/인증", () => {
     expect(row?.fetch_status).toBe("failed");
     // sends[0]은 인증 공개 알림, sends[1]이 검증 실패 안내
     const sends = deps.calls.filter((c2) => c2.method === "sendMessage");
+    expect(JSON.stringify(sends[1].args[1])).toContain("404");
     expect(JSON.stringify(sends[1].args[1])).toContain("인증은 유효");
+  });
+
+  it("403·500 같은 봇 차단 응답은 링크 실존으로 간주해 ok로 기록", async () => {
+    const c = await seedCycle("2026-07-20", "thread-A");
+    await q.addParticipant(env.DB, c.id, "u1", "manual", NOW_ISO);
+    const deps = makeDeps({ fetcher: fetcherReturning(403) });
+    await handleSubmit(submitInteraction("https://medium.com/@x/p"), deps);
+    await waitOnExecutionContext(deps.ctx);
+    const row = await env.DB.prepare("SELECT fetch_status, fetch_title FROM submissions WHERE url = 'https://medium.com/@x/p'")
+      .first<{ fetch_status: string; fetch_title: string | null }>();
+    expect(row?.fetch_status).toBe("ok");
+    expect(row?.fetch_title).toBeNull(); // 차단 페이지의 제목은 읽지 않는다
+    const sends = deps.calls.filter((c2) => c2.method === "sendMessage");
+    expect(JSON.stringify(sends[1].args[1])).toContain("🔗");
+    expect(JSON.stringify(sends[1].args[1])).not.toContain("⚠️");
+  });
+
+  it("네트워크 오류·타임아웃은 failed로 기록하고 인증은 유효 안내", async () => {
+    const c = await seedCycle("2026-07-20", "thread-A");
+    await q.addParticipant(env.DB, c.id, "u1", "manual", NOW_ISO);
+    const throwingFetcher: typeof fetch = async () => {
+      throw new TypeError("connect timeout");
+    };
+    const deps = makeDeps({ fetcher: throwingFetcher });
+    await handleSubmit(submitInteraction("https://down.com/p"), deps);
+    await waitOnExecutionContext(deps.ctx);
+    const row = await env.DB.prepare("SELECT fetch_status FROM submissions WHERE url = 'https://down.com/p'")
+      .first<{ fetch_status: string }>();
+    expect(row?.fetch_status).toBe("failed");
+    const sends = deps.calls.filter((c2) => c2.method === "sendMessage");
+    expect(JSON.stringify(sends[1].args[1])).toContain("인증은 유효");
+  });
+
+  it("접속 확인 요청에 브라우저형 User-Agent 헤더를 보낸다", async () => {
+    const c = await seedCycle("2026-07-20", "thread-A");
+    await q.addParticipant(env.DB, c.id, "u1", "manual", NOW_ISO);
+    let seenInit: RequestInit | undefined;
+    const capturingFetcher: typeof fetch = async (_input, init) => {
+      seenInit = init;
+      return new Response("<title>글</title>", { status: 200 });
+    };
+    const deps = makeDeps({ fetcher: capturingFetcher });
+    await handleSubmit(submitInteraction("https://ua.com/p"), deps);
+    await waitOnExecutionContext(deps.ctx);
+    const headers = seenInit?.headers as Record<string, string>;
+    expect(headers["user-agent"]).toContain("Mozilla");
+    expect(headers["accept-language"]).toBeDefined();
   });
 
   it("http 링크는 ephemeral 거부", async () => {

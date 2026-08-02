@@ -52,7 +52,17 @@ export const handleSubmit: Handler = async (interaction, deps) => {
   return deferredEphemeral();
 };
 
+// UA 없는 요청은 Bear Blog(403)·티스토리(500) 등에서 거부되므로 브라우저형 헤더를 보낸다.
+const BROWSER_HEADERS: Record<string, string> = {
+  "user-agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+  accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "accept-language": "ko,en;q=0.9",
+};
+
 // 스펙 §5.3-7: best-effort 접속 확인. 실패해도 인증에 영향 없음.
+// Medium처럼 헤더로도 못 뚫는 봇 차단(403 챌린지)이 있으므로, 응답이 왔다면
+// 404(페이지 없음)만 실패로 보고 나머지는 링크 실존으로 간주한다. 제목은 2xx일 때만 읽는다.
 async function verifyAndReport(
   deps: Deps,
   cycle: CycleRow,
@@ -61,22 +71,31 @@ async function verifyAndReport(
 ): Promise<void> {
   let status: "ok" | "failed" = "failed";
   let title: string | null = null;
+  let note = "⚠️ 링크 접속 확인은 실패했지만 인증은 유효해요.";
   try {
-    const res = await deps.fetcher(url, { signal: AbortSignal.timeout(5000), redirect: "follow" });
+    const res = await deps.fetcher(url, {
+      signal: AbortSignal.timeout(5000),
+      redirect: "follow",
+      headers: BROWSER_HEADERS,
+    });
     if (res.ok) {
       const html = await res.text();
       const m = html.match(/<title[^>]*>([^<]*)<\/title>/i);
       title = m ? m[1].trim().slice(0, 100) || null : null;
       status = "ok";
+      note = `🔗 ${title ?? "(제목 없음)"}`;
+    } else if (res.status === 404) {
+      note = "⚠️ 페이지를 찾을 수 없어요(404). 인증은 유효하지만 링크를 한 번 확인해주세요.";
+      console.error(`링크 검증 404: ${url}`);
+    } else {
+      status = "ok";
+      note = "🔗 (제목은 못 가져왔어요)";
+      console.log(`링크 검증: HTTP ${res.status} → 실존으로 간주: ${url}`);
     }
-  } catch {
-    // 타임아웃·네트워크 오류 → failed 기록만
+  } catch (err) {
+    console.error(`링크 검증 예외 (${url}):`, err);
   }
   await setSubmissionFetchResult(deps.db, submissionId, status, title);
-  const note =
-    status === "ok"
-      ? `🔗 ${title ?? "(제목 없음)"}`
-      : "⚠️ 링크 접속 확인은 실패했지만 인증은 유효해요.";
   try {
     await deps.api.sendMessage(cycle.thread_id, { content: note, allowed_mentions: { parse: [] } });
   } catch (err) {
