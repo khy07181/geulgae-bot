@@ -4,6 +4,7 @@ import {
 import type { DiscordApi } from "../discord/api";
 import { isPastDeadline, weekLabel } from "../domain/cycle";
 import { calculateSettlement } from "../domain/settlement";
+import { errorNote, notifyFailure } from "./notify";
 import type { Env } from "../types";
 
 export interface JobDeps {
@@ -63,6 +64,10 @@ export async function settleSweep(deps: JobDeps): Promise<void> {
       // 한 사이클의 실패가 다른 사이클 정산을 막지 않는다.
       // settled_at이 찍히지 않았으므로 다음 sweep이 이 사이클을 재시도한다.
       console.error(`정산 실패 (cycle ${cycle.id}, ${cycle.week_start}):`, err);
+      await notifyFailure(
+        deps,
+        `⚠️ ${weekLabel(cycle.week_start)} 정산 중 오류가 났어요. 내일 00:01에 자동으로 재시도해요.\n\`${errorNote(err)}\``
+      );
     }
   }
 }

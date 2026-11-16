@@ -1,8 +1,7 @@
 import { verifyKey } from "discord-interactions";
 import { DiscordApi } from "./discord/api";
-import { settleSweep, type JobDeps } from "./jobs/settle";
-import { fallbackNotice } from "./jobs/fallback-notice";
-import { reminder } from "./jobs/reminder";
+import { runScheduledJob } from "./jobs/run";
+import type { JobDeps } from "./jobs/settle";
 import { routeInteraction, type Deps } from "./router";
 import type { Env, Interaction } from "./types";
 
@@ -39,23 +38,6 @@ export default {
       api: new DiscordApi(env.DISCORD_TOKEN),
       now: () => new Date(),
     };
-    try {
-      switch (event.cron) {
-        case "1 15 * * *": // 매일 00:01 KST — 정산 sweep
-          await settleSweep(deps);
-          break;
-        case "0 1 * * TUE": // 화 10:00 KST — 안전망 공지
-          await fallbackNotice(deps);
-          break;
-        case "0 1 * * SUN": // 일 10:00 KST — 마감 리마인더
-          await reminder(deps);
-          break;
-        default:
-          console.log(`알 수 없는 cron: ${event.cron}`);
-      }
-    } catch (err) {
-      console.error("cron 잡 실패:", event.cron, err);
-      throw err;
-    }
+    await runScheduledJob(event.cron, deps);
   },
 } satisfies ExportedHandler<Env>;

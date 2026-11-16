@@ -140,6 +140,31 @@ describe("settleSweep", () => {
     // c2: 정상 정산 완료
     expect(await q.getPenaltyBalance(env.DB, "u2")).toBe(10000);
     expect((await q.getCycleByWeekStart(env.DB, "2026-07-13"))?.settled_at).not.toBeNull();
-    expect(sent).toEqual(["thread-OLD2"]);
+    // c1 실패는 인증 채널 알림으로 드러나고, c2 공지는 그대로 나간다
+    expect(sent).toEqual([CHANNEL_ID, "thread-OLD2"]);
+  });
+
+  it("사이클 정산이 실패하면 인증 채널에 실패 알림을 남긴다", async () => {
+    const c = await seedLastWeek();
+    await q.addParticipant(env.DB, c.id, "u1", "manual", NOW_ISO);
+    const notices: { ch: string; content: string }[] = [];
+    const api = {
+      async sendMessage(ch: string, payload: { content: string }) {
+        if (ch === "thread-OLD") throw new Error("스레드 접근 실패 404");
+        notices.push({ ch, content: payload.content });
+        return { id: "1" };
+      },
+    } as unknown as DiscordApi;
+
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    await settleSweep(jobDeps(api));
+    errSpy.mockRestore();
+
+    expect(notices).toHaveLength(1);
+    expect(notices[0].ch).toBe(CHANNEL_ID);
+    expect(notices[0].content).toContain("정산 중 오류");
+    expect(notices[0].content).toContain("404");
+    // 여전히 미정산으로 남아 다음 sweep이 재시도한다
+    expect((await q.getCycleByWeekStart(env.DB, "2026-07-13"))?.settled_at).toBeNull();
   });
 });
