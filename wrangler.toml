@@ -1,5 +1,6 @@
 name = "geulgae-bot"
 main = "src/index.ts"
+account_id = "bb6a6211a5e2a9bd37c287fe49914ea2"
 compatibility_date = "2026-03-10"
 
 [triggers]
