@@ -150,6 +150,24 @@ export async function getPenaltyBalances(db: D1Database): Promise<{ user_id: str
   return results;
 }
 
+// PAGE-002: 홈페이지 작성자 표기용 닉네임 (본인 등록, BOT-002)
+export async function setNickname(db: D1Database, userId: string, name: string, updatedAt: string): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO nicknames (user_id, name, updated_at) VALUES (?, ?, ?)
+       ON CONFLICT(user_id) DO UPDATE SET name = excluded.name, updated_at = excluded.updated_at`
+    )
+    .bind(userId, name, updatedAt)
+    .run();
+}
+
+export async function getNicknames(db: D1Database): Promise<Map<string, string>> {
+  const { results } = await db
+    .prepare("SELECT user_id, name FROM nicknames")
+    .all<{ user_id: string; name: string }>();
+  return new Map(results.map((r) => [r.user_id, r.name]));
+}
+
 export async function listUnsettledCycles(db: D1Database): Promise<CycleRow[]> {
   const { results } = await db
     .prepare("SELECT * FROM cycles WHERE settled_at IS NULL ORDER BY week_start")

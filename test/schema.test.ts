@@ -2,11 +2,11 @@ import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 
 describe("D1 스키마", () => {
-  it("테이블 4개가 생성된다", async () => {
+  it("테이블 5개가 생성된다", async () => {
     const { results } = await env.DB.prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf%' AND name != 'd1_migrations' ORDER BY name"
     ).all<{ name: string }>();
-    expect(results.map((r) => r.name)).toEqual(["cycles", "participants", "penalty_entries", "submissions"]);
+    expect(results.map((r) => r.name)).toEqual(["cycles", "nicknames", "participants", "penalty_entries", "submissions"]);
   });
 
   it("정산 멱등 인덱스: 같은 (cycle, user)의 settlement 이중 INSERT는 거부된다", async () => {

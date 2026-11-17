@@ -3,6 +3,7 @@ import { ephemeral, pong } from "./discord/replies";
 import { handleGoal } from "./interactions/goal";
 import { handleJoin } from "./interactions/join";
 import { handleJoinButton } from "./interactions/join-button";
+import { handleNickname } from "./interactions/nickname";
 import { handlePenaltyAdjust, handlePenaltyStatus } from "./interactions/penalty";
 import { handleStatus } from "./interactions/status";
 import { handleSubmit } from "./interactions/submit";
@@ -29,6 +30,7 @@ const commandHandlers: Record<string, Handler> = {
   참여취소: handleWithdraw,
   벌금현황: handlePenaltyStatus,
   벌금조정: handlePenaltyAdjust,
+  닉네임: handleNickname,
 };
 
 // custom_id의 ':' 앞부분(prefix)으로 매칭. Task 11에서 "join"이 추가된다.
