@@ -54,6 +54,11 @@ const commands = [
     description: "이번 주 참여를 취소해요 (인증한 글이 없을 때만)",
     options: [{ type: USER, name: "대상", description: "취소할 멤버 (기본: 본인)", required: false }],
   },
+  {
+    name: "닉네임",
+    description: "글개 서재(홈페이지)에 표시할 내 이름을 등록해요",
+    options: [{ type: STRING, name: "이름", description: "표시할 이름 (20자 이하)", required: true, max_length: 20 }],
+  },
 ];
 
 const url = `https://discord.com/api/v10/applications/${process.env.DISCORD_APPLICATION_ID}/guilds/${process.env.DISCORD_GUILD_ID}/commands`;

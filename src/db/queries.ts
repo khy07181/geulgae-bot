@@ -150,6 +150,74 @@ export async function getPenaltyBalances(db: D1Database): Promise<{ user_id: str
   return results;
 }
 
+// VIS-001·PAGE-004: 서재 페이지용 전체 조회
+export async function listAllCycles(db: D1Database): Promise<CycleRow[]> {
+  const { results } = await db.prepare("SELECT * FROM cycles ORDER BY week_start DESC").all<CycleRow>();
+  return results;
+}
+
+export interface SubmissionRow {
+  cycle_id: number;
+  user_id: string;
+  url: string;
+  fetch_title: string | null;
+  submitted_at: string;
+}
+
+export async function listAllSubmissions(db: D1Database): Promise<SubmissionRow[]> {
+  const { results } = await db
+    .prepare("SELECT cycle_id, user_id, url, fetch_title, submitted_at FROM submissions ORDER BY submitted_at")
+    .all<SubmissionRow>();
+  return results;
+}
+
+export async function listAllParticipants(db: D1Database): Promise<{ cycle_id: number; user_id: string }[]> {
+  const { results } = await db
+    .prepare("SELECT cycle_id, user_id FROM participants")
+    .all<{ cycle_id: number; user_id: string }>();
+  return results;
+}
+
+export interface PenaltyEntryRow {
+  user_id: string;
+  amount: number;
+  kind: string;
+  cycle_id: number | null;
+  created_at: string;
+}
+
+export async function listAllPenaltyEntries(db: D1Database): Promise<PenaltyEntryRow[]> {
+  const { results } = await db
+    .prepare("SELECT user_id, amount, kind, cycle_id, created_at FROM penalty_entries")
+    .all<PenaltyEntryRow>();
+  return results;
+}
+
+export async function countDistinctParticipants(db: D1Database): Promise<number> {
+  const row = await db
+    .prepare("SELECT COUNT(DISTINCT user_id) AS n FROM participants")
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+// PAGE-002: 홈페이지 작성자 표기용 닉네임 (본인 등록, BOT-002)
+export async function setNickname(db: D1Database, userId: string, name: string, updatedAt: string): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO nicknames (user_id, name, updated_at) VALUES (?, ?, ?)
+       ON CONFLICT(user_id) DO UPDATE SET name = excluded.name, updated_at = excluded.updated_at`
+    )
+    .bind(userId, name, updatedAt)
+    .run();
+}
+
+export async function getNicknames(db: D1Database): Promise<Map<string, string>> {
+  const { results } = await db
+    .prepare("SELECT user_id, name FROM nicknames")
+    .all<{ user_id: string; name: string }>();
+  return new Map(results.map((r) => [r.user_id, r.name]));
+}
+
 export async function listUnsettledCycles(db: D1Database): Promise<CycleRow[]> {
   const { results } = await db
     .prepare("SELECT * FROM cycles WHERE settled_at IS NULL ORDER BY week_start")

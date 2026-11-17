@@ -13,6 +13,7 @@ export function makeEnv(overrides: Partial<Env> = {}): Env {
     DISCORD_APPLICATION_ID: "app-1",
     DISCORD_GUILD_ID: "guild-1",
     CHANNEL_ID,
+    PAGE_TOKEN: "test-page-token",
     ...overrides,
   };
 }

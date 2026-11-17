@@ -2,12 +2,13 @@ import { verifyKey } from "discord-interactions";
 import { DiscordApi } from "./discord/api";
 import { runScheduledJob } from "./jobs/run";
 import type { JobDeps } from "./jobs/settle";
+import { handleGet } from "./page/route";
 import { routeInteraction, type Deps } from "./router";
 import type { Env, Interaction } from "./types";
 
 export default {
   async fetch(request, env, ctx): Promise<Response> {
-    if (request.method !== "POST") return new Response("geulgae-bot", { status: 200 });
+    if (request.method !== "POST") return handleGet(request, env);
 
     const signature = request.headers.get("x-signature-ed25519");
     const timestamp = request.headers.get("x-signature-timestamp");
