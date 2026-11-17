@@ -27,6 +27,13 @@ export function isPastDeadline(weekStart: string, now: Date): boolean {
   return now.getTime() >= deadlineOf(weekStart).getTime();
 }
 
+// PAGE-005: 결산의 연도 귀속 — 그 주 일요일(week_start + 6일)의 연도를 따른다.
+// 예: 2026-12-28(월) 시작 주는 일요일이 2027-01-03이므로 2027 결산 소속.
+export function recapYearOf(weekStart: string): number {
+  const [y, m, d] = weekStart.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + 6)).getUTCFullYear();
+}
+
 export function weekLabel(weekStart: string): string {
   const [, m, d] = weekStart.split("-").map(Number);
   return `${m}월 ${Math.ceil(d / 7)}주차`;

@@ -53,7 +53,7 @@ describe("서재 페이지 (GET)", () => {
 
   it("맞는 토큰이면 통계·글 목록·닉네임을 렌더한다", async () => {
     await seedLibrary();
-    const res = await get("/s/test-page-token");
+    const res = await get("/s/test-page-token/");
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     const html = await res.text();
@@ -69,7 +69,7 @@ describe("서재 페이지 (GET)", () => {
 
   it("Discord 숫자 ID는 페이지에 노출되지 않는다 (PAGE-001)", async () => {
     await seedLibrary();
-    const html = await (await get("/s/test-page-token")).text();
+    const html = await (await get("/s/test-page-token/")).text();
     expect(html).not.toContain(U1);
     expect(html).not.toContain(U2);
   });
@@ -79,7 +79,7 @@ describe("서재 페이지 (GET)", () => {
     await q.setNickname(env.DB, U1, '<b>해커"', "2026-07-13T03:00:00Z");
     const sub = await q.insertSubmission(env.DB, { cycleId: c.id, userId: U1, url: "https://blog.test/post-3", submittedAt: "2026-07-16T00:00:00Z" });
     if (sub !== "duplicate") await q.setSubmissionFetchResult(env.DB, sub.id, "ok", "<script>x</script>");
-    const html = await (await get("/s/test-page-token")).text();
+    const html = await (await get("/s/test-page-token/")).text();
     expect(html).not.toContain("<b>해커");
     expect(html).not.toContain("<script>x");
     expect(html).toContain("&lt;b&gt;해커&quot;");
@@ -91,7 +91,7 @@ describe("서재 페이지 (GET)", () => {
       weekStart: "2026-07-20", goalCount: 2, penaltyPerPost: 10000,
       channelId: "chan-1", threadId: "t-2", createdBy: "bot:fallback", createdAt: "2026-07-20T00:00:00Z",
     });
-    const html = await (await get("/s/test-page-token")).text();
+    const html = await (await get("/s/test-page-token/")).text();
     expect(html).toContain("인증 글 없음");
   });
 });

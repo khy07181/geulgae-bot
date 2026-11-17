@@ -171,6 +171,28 @@ export async function listAllSubmissions(db: D1Database): Promise<SubmissionRow[
   return results;
 }
 
+export async function listAllParticipants(db: D1Database): Promise<{ cycle_id: number; user_id: string }[]> {
+  const { results } = await db
+    .prepare("SELECT cycle_id, user_id FROM participants")
+    .all<{ cycle_id: number; user_id: string }>();
+  return results;
+}
+
+export interface PenaltyEntryRow {
+  user_id: string;
+  amount: number;
+  kind: string;
+  cycle_id: number | null;
+  created_at: string;
+}
+
+export async function listAllPenaltyEntries(db: D1Database): Promise<PenaltyEntryRow[]> {
+  const { results } = await db
+    .prepare("SELECT user_id, amount, kind, cycle_id, created_at FROM penalty_entries")
+    .all<PenaltyEntryRow>();
+  return results;
+}
+
 export async function countDistinctParticipants(db: D1Database): Promise<number> {
   const row = await db
     .prepare("SELECT COUNT(DISTINCT user_id) AS n FROM participants")
