@@ -5,6 +5,8 @@ export interface Env {
   DISCORD_APPLICATION_ID: string;
   DISCORD_GUILD_ID: string;
   CHANNEL_ID: string;
+  // PAGE-003: 서재 비밀 경로 토큰(wrangler secret). 미설정이면 서재 경로는 404로 닫힌다.
+  PAGE_TOKEN?: string;
 }
 
 export const InteractionType = {
