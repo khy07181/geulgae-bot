@@ -12,6 +12,11 @@ function kstDateLabel(iso: string): string {
   return `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일`;
 }
 
+function weekAfter(weekStart: string): string {
+  const [y, m, d] = weekStart.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + 7)).toISOString().slice(0, 10);
+}
+
 export interface RecapInput {
   year: number;
   cycles: CycleRow[];
@@ -95,16 +100,19 @@ export function buildRecap(input: RecapInput): Recap {
     if (achieved(p.cycle_id, p.user_id)) m.achievedWeeks += 1;
   }
 
-  // 멤버별 최장 연속 달성 주: 주 순서대로, 미참여·미달성은 연속을 끊는다 (PAGE-009)
+  // 멤버별 최장 연속 달성 주 (PAGE-009): 달력상 연속(정확히 7일 간격)인 주만 잇는다.
+  // 미참여·미달성은 물론, 사이클이 생성되지 않은 주(갭)도 연속을 끊는다.
   for (const m of memberMap.values()) {
     let run = 0;
-    for (const c of cycles) {
-      if (joined.has(`${c.id}:${m.userId}`) && achieved(c.id, m.userId)) {
-        run += 1;
-        if (run > m.longestStreak) m.longestStreak = run;
-      } else {
+    for (let i = 0; i < cycles.length; i++) {
+      const c = cycles[i];
+      if (!(joined.has(`${c.id}:${m.userId}`) && achieved(c.id, m.userId))) {
         run = 0;
+        continue;
       }
+      const contiguous = run > 0 && weekAfter(cycles[i - 1].week_start) === c.week_start;
+      run = contiguous ? run + 1 : 1;
+      if (run > m.longestStreak) m.longestStreak = run;
     }
   }
 
@@ -152,21 +160,24 @@ export function buildRecap(input: RecapInput): Recap {
       if (monthlyPosts[i] > (busiestMonth?.count ?? 0)) busiestMonth = { month: i + 1, count: monthlyPosts[i] };
     }
 
+    // 가장 긴 전원 달성 연속: 멤버 스트릭과 같은 기준(달력상 7일 간격)으로 잇는다.
     let longestAllAchievedRun: RecapRecords["longestAllAchievedRun"] = null;
     let runStart = -1;
-    for (let i = 0; i <= cycles.length; i++) {
-      const hit = i < cycles.length && isAllAchieved(cycles[i]);
-      if (hit && runStart < 0) runStart = i;
-      if (!hit && runStart >= 0) {
-        const len = i - runStart;
-        if (len > (longestAllAchievedRun?.length ?? 0)) {
-          longestAllAchievedRun = {
-            length: len,
-            startLabel: weekLabel(cycles[runStart].week_start),
-            endLabel: weekLabel(cycles[i - 1].week_start),
-          };
-        }
+    for (let i = 0; i < cycles.length; i++) {
+      const c = cycles[i];
+      if (!isAllAchieved(c)) {
         runStart = -1;
+        continue;
+      }
+      const contiguous = runStart >= 0 && weekAfter(cycles[i - 1].week_start) === c.week_start;
+      if (!contiguous) runStart = i;
+      const len = i - runStart + 1;
+      if (len > (longestAllAchievedRun?.length ?? 0)) {
+        longestAllAchievedRun = {
+          length: len,
+          startLabel: weekLabel(cycles[runStart].week_start),
+          endLabel: weekLabel(c.week_start),
+        };
       }
     }
 

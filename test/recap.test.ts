@@ -96,6 +96,22 @@ describe("buildRecap", () => {
     expect(r.records?.longestAllAchievedRun).toEqual({ length: 2, startLabel: "7월 1주차", endLabel: "7월 2주차" });
   });
 
+  it("사이클이 생성되지 않은 주(갭)는 연속을 끊는다", () => {
+    // 7-13 주차가 아예 없음: 7-06 달성 → (갭) → 7-20 달성은 연속 2주가 아니다
+    const r = buildRecap({
+      year: 2026,
+      cycles: [cycle(1, "2026-07-06"), cycle(3, "2026-07-20")],
+      submissions: [
+        sub(1, 1, "u1", "2026-07-07T00:00:00Z"),
+        sub(2, 3, "u1", "2026-07-21T00:00:00Z"),
+      ],
+      participants: [{ cycle_id: 1, user_id: "u1" }, { cycle_id: 3, user_id: "u1" }],
+      penalties: [],
+    });
+    expect(r.members[0].longestStreak).toBe(1);
+    expect(r.records?.longestAllAchievedRun?.length).toBe(1);
+  });
+
   it("조정의 연도는 created_at의 KST 기준이다", () => {
     const r = buildRecap({
       year: 2027, cycles: [], submissions: [], participants: [],
