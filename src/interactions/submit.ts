@@ -54,7 +54,7 @@ export const handleSubmit: Handler = async (interaction, deps) => {
 };
 
 // UA 없는 요청은 Bear Blog(403)·티스토리(500) 등에서 거부되므로 브라우저형 헤더를 보낸다.
-const BROWSER_HEADERS: Record<string, string> = {
+export const BROWSER_HEADERS: Record<string, string> = {
   "user-agent":
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
   accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",

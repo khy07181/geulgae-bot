@@ -233,6 +233,23 @@ export async function insertKeywords(
   await db.batch(keywords.map((k) => stmt.bind(submissionId, k, createdAt)));
 }
 
+// PAGE-013: 소급 배치용 — 키워드가 없는 제출을 id 커서 순서로 가져온다.
+export async function listSubmissionsMissingKeywords(
+  db: D1Database,
+  afterId: number,
+  limit: number
+): Promise<{ id: number; url: string; fetch_title: string | null }[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT s.id, s.url, s.fetch_title FROM submissions s
+       WHERE s.id > ? AND NOT EXISTS (SELECT 1 FROM keywords k WHERE k.submission_id = s.id)
+       ORDER BY s.id LIMIT ?`
+    )
+    .bind(afterId, limit)
+    .all<{ id: number; url: string; fetch_title: string | null }>();
+  return results;
+}
+
 export async function listAllKeywords(
   db: D1Database
 ): Promise<{ submission_id: number; keyword: string }[]> {
