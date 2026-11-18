@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ko" data-theme="editorial">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>글개 Archive — 디자인 목업 (합성 데이터)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;900&display=swap">
+<style>
+  :root {
+    --sans: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+    --serif: "Noto Serif KR", "Apple SD Gothic Neo", serif;
+  }
+  html[data-theme="editorial"] {
+    --bg:#f8f3e9; --ink:#231c10; --ink2:#6b6150; --ink3:#8e8470;
+    --accent:#9a3b1e; --rule:#ddd3bf; --rule-strong:#231c10;
+    --card:transparent; --card-bd:transparent; --radius:0px; --shadow:none;
+    --display:var(--serif); --body:var(--serif); --meta:var(--sans);
+  }
+  html[data-theme="dark"] {
+    --bg:#161008; --ink:#f0e6d2; --ink2:#bfae8f; --ink3:#8a7c64;
+    --accent:#d9a84e; --rule:#352a1b; --rule-strong:#c9b68c;
+    --card:#1e170d; --card-bd:#352a1b; --radius:2px; --shadow:none;
+    --display:var(--serif); --body:var(--serif); --meta:var(--sans);
+  }
+  html[data-theme="minimal"] {
+    --bg:#fafafa; --ink:#111113; --ink2:#55555e; --ink3:#9d9da8;
+    --accent:#4f46e5; --rule:#e8e8ec; --rule-strong:#111113;
+    --card:#ffffff; --card-bd:#e8e8ec; --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.05);
+    --display:var(--sans); --body:var(--sans); --meta:var(--sans);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--body); line-height: 1.65;
+    transition: background .25s ease, color .25s ease;
+  }
+  .wrap { max-width: 46rem; margin: 0 auto; padding: 4.5rem 1.5rem 8rem; }
+  a { color: inherit; text-decoration: none; }
+
+  /* ── 마스트헤드 ── */
+  .kicker {
+    font-family: var(--meta); font-size: .7rem; font-weight: 600;
+    letter-spacing: .38em; text-transform: uppercase; color: var(--accent);
+    margin: 0 0 1.1rem;
+  }
+  h1 {
+    font-family: var(--display); font-weight: 900; font-size: clamp(2.6rem, 7vw, 3.6rem);
+    line-height: 1.12; margin: 0 0 .9rem; letter-spacing: -0.015em;
+  }
+  h1 .en { font-style: italic; font-weight: 600; }
+  html[data-theme="minimal"] h1 .en { font-style: normal; font-weight: 900; color: var(--accent); }
+  .masthead .stats {
+    font-family: var(--meta); font-size: .9rem; color: var(--ink2); margin: 0 0 2rem;
+  }
+  .masthead .stats b { color: var(--ink); font-weight: 650; }
+  .double-rule { border-top: 3px solid var(--rule-strong); margin-bottom: 2px; }
+  .double-rule::after { content:""; display:block; border-top: 1px solid var(--rule-strong); margin-top: 2px; }
+  html[data-theme="minimal"] .double-rule, html[data-theme="minimal"] .double-rule::after { border-color: var(--rule); }
+
+  /* ── 연도 ── */
+  .year-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin: 3.2rem 0 .4rem;
+  }
+  .year-head h2 {
+    font-family: var(--display); font-size: 2.4rem; font-weight: 900;
+    letter-spacing: .02em; margin: 0;
+  }
+  .recap-link {
+    font-family: var(--meta); font-size: .85rem; font-weight: 600; color: var(--accent);
+    border-bottom: 1px solid transparent; transition: border-color .15s;
+  }
+  .recap-link:hover { border-color: var(--accent); }
+
+  /* ── 월 ── */
+  h3.month {
+    font-family: var(--meta); font-size: .78rem; font-weight: 700;
+    letter-spacing: .22em; color: var(--ink3); text-transform: uppercase;
+    margin: 2.6rem 0 .4rem;
+  }
+
+  /* ── 주차 블록 ── */
+  .week {
+    display: grid; grid-template-columns: 8.2rem 1fr; gap: 1.2rem;
+    padding: 1.15rem 0; border-top: 1px solid var(--rule);
+  }
+  .week-side .wk { font-family: var(--display); font-weight: 600; font-size: 1rem; display:block; }
+  .week-side .meta {
+    font-family: var(--meta); font-size: .74rem; color: var(--ink3);
+    display: block; margin-top: .3rem; line-height: 1.5;
+  }
+  ul.entries { list-style: none; margin: 0; padding: 0; }
+  ul.entries li { display: flex; align-items: baseline; gap: .55em; margin: .42rem 0; }
+  .entry-t { font-weight: 500; font-size: .98rem; position: relative; }
+  a.entry-t::after {
+    content:""; position:absolute; left:0; right:100%; bottom:-1px;
+    border-bottom:1px solid var(--accent); transition: right .18s ease;
+  }
+  a.entry-t:hover::after { right: 0; }
+  a.entry-t:hover { color: var(--accent); }
+  .dots { flex: 1; border-bottom: 1px dotted var(--rule); transform: translateY(-4px); min-width: 1.5rem; }
+  .by { font-family: var(--meta); font-size: .8rem; color: var(--ink2); white-space: nowrap; }
+  .empty { color: var(--ink3); font-size: .88rem; font-style: italic; }
+
+  /* 미니멀: 주차를 카드로 */
+  html[data-theme="minimal"] .week {
+    background: var(--card); border: 1px solid var(--card-bd); border-top: 1px solid var(--card-bd);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 1.2rem 1.4rem; margin-bottom: .9rem;
+  }
+  html[data-theme="minimal"] .dots { border-bottom-color: transparent; }
+  html[data-theme="minimal"] ul.entries li { justify-content: space-between; }
+
+  /* 다크: 카드 살짝 */
+  html[data-theme="dark"] .week { border-top-color: var(--rule); }
+
+  .foot {
+    margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid var(--rule);
+    font-family: var(--meta); font-size: .78rem; color: var(--ink3);
+    display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  }
+
+  /* ── 테마 토글(목업 전용) ── */
+  .tg {
+    position: fixed; bottom: 1.1rem; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: .3rem;
+    background: color-mix(in srgb, var(--ink) 92%, transparent); color: var(--bg);
+    padding: .4rem .55rem .4rem .8rem; border-radius: 99px;
+    font-family: var(--sans); font-size: .72rem;
+    box-shadow: 0 6px 24px rgba(0,0,0,.25); z-index: 9;
+  }
+  .tg .lab { opacity:.65; margin-right:.35rem; letter-spacing:.02em; }
+  .tg button {
+    all: unset; cursor: pointer; padding: .3rem .7rem; border-radius: 99px;
+    font-size: .74rem; font-weight: 600; color: var(--bg); opacity: .6;
+  }
+  .tg button:hover { opacity: .9; }
+  .tg button[aria-pressed="true"] { background: var(--bg); color: var(--ink); opacity: 1; }
+
+  @media (max-width: 580px) {
+    .week { grid-template-columns: 1fr; gap: .4rem; }
+    .wrap { padding-top: 3rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="kicker">Geulgae · Weekly Writing Club</p>
+    <h1>글개 <span class="en">Archive</span></h1>
+    <p class="stats"><b>글 42편</b> · 18주차 · 함께 쓰는 4명 <span style="opacity:.55">— 2026. 11. 18 기준</span></p>
+    <div class="double-rule"></div>
+  </header>
+
+  <section class="year">
+    <div class="year-head">
+      <h2>2026</h2>
+      <a class="recap-link" href="mockup-recap.html">2026 결산 보기 →</a>
+    </div>
+
+    <h3 class="month">11월</h3>
+
+    <div class="week">
+      <div class="week-side">
+        <span class="wk">11월 3주차</span>
+        <span class="meta">11.16 월 – 11.22 일<br>목표 주 2편</span>
+      </div>
+      <ul class="entries">
+        <li><a class="entry-t" href="#">결정 중심 개발 일주일 후기</a><span class="dots"></span><span class="by">하영</span></li>
+        <li><a class="entry-t" href="#">우리 스터디 홈페이지 만들기</a><span class="dots"></span><span class="by">민희</span></li>
+        <li><a class="entry-t" href="#">달리기와 글쓰기의 공통점</a><span class="dots"></span><span class="by">지안</span></li>
+      </ul>
+    </div>
+
+    <div class="week">
+      <div class="week-side">
+        <span class="wk">11월 2주차</span>
+        <span class="meta">11.09 월 – 11.15 일<br>목표 주 1편</span>
+      </div>
+      <ul class="entries">
+        <li><a class="entry-t" href="#">물고기는 존재하지 않는다 — 11월의 독서</a><span class="dots"></span><span class="by">서윤</span></li>
+        <li><a class="entry-t" href="#">D1에서 겪은 트랜잭션 이야기</a><span class="dots"></span><span class="by">하영</span></li>
+      </ul>
+    </div>
+
+    <h3 class="month">10월</h3>
+
+    <div class="week">
+      <div class="week-side">
+        <span class="wk">10월 4주차</span>
+        <span class="meta">10.26 월 – 11.01 일<br>목표 주 1편</span>
+      </div>
+      <ul class="entries">
+        <li><a class="entry-t" href="#">가을 제주 워케이션 기록</a><span class="dots"></span><span class="by">민희</span></li>
+        <li><a class="entry-t" href="#">타입스크립트 5.7에서 달라진 것</a><span class="dots"></span><span class="by">하영</span></li>
+        <li><a class="entry-t" href="#">디자인 시스템을 혼자 운영하는 법</a><span class="dots"></span><span class="by">지안</span></li>
+        <li><a class="entry-t" href="#">10월 회고 — 루틴이 무너질 때</a><span class="dots"></span><span class="by">서윤</span></li>
+      </ul>
+    </div>
+
+    <div class="week">
+      <div class="week-side">
+        <span class="wk">10월 3주차</span>
+        <span class="meta">10.19 월 – 10.25 일<br>목표 주 1편</span>
+      </div>
+      <ul class="entries">
+        <li class="empty">인증 글 없음</li>
+      </ul>
+    </div>
+
+    <h3 class="month">9월</h3>
+
+    <div class="week">
+      <div class="week-side">
+        <span class="wk">9월 2주차</span>
+        <span class="meta">09.07 월 – 09.13 일<br>목표 주 1편</span>
+      </div>
+      <ul class="entries">
+        <li><a class="entry-t" href="#">사이드 프로젝트를 끝까지 보내는 기술</a><span class="dots"></span><span class="by">하영</span></li>
+        <li><a class="entry-t" href="#">9월 회고</a><span class="dots"></span><span class="by">민희</span></li>
+        <li><a class="entry-t" href="#">인터뷰어로 1년을 보내고</a><span class="dots"></span><span class="by">지안</span></li>
+      </ul>
+    </div>
+
+    <p class="empty" style="margin:2.2rem 0 0; font-family:var(--meta); font-size:.8rem;">… 8월~1월은 목업에서 생략 (합성 데이터)</p>
+  </section>
+
+  <footer class="foot">
+    <span>글개 Archive — 멤버 전용 비공개 페이지</span>
+    <span>검색 노출 안 함 · noindex</span>
+  </footer>
+
+</div>
+
+<nav class="tg" aria-label="목업 테마 전환">
+  <span class="lab">목업 테마</span>
+  <button data-t="editorial" onclick="setTheme('editorial')">에디토리얼</button>
+  <button data-t="dark" onclick="setTheme('dark')">다크</button>
+  <button data-t="minimal" onclick="setTheme('minimal')">미니멀</button>
+</nav>
+
+<script>
+  const KEY = "geulgae-mock-theme";
+  function setTheme(t) {
+    document.documentElement.dataset.theme = t;
+    try { localStorage.setItem(KEY, t); } catch (e) {}
+    document.querySelectorAll(".tg button").forEach(b =>
+      b.setAttribute("aria-pressed", String(b.dataset.t === t)));
+  }
+  let saved = "editorial";
+  try { saved = localStorage.getItem(KEY) || saved; } catch (e) {}
+  setTheme(saved);
+</script>
+</body>
+</html>

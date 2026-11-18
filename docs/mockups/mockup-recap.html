@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="ko" data-theme="editorial">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>2026 글개 결산 — 디자인 목업 (합성 데이터)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;900&display=swap">
+<style>
+  :root {
+    --sans: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+    --serif: "Noto Serif KR", "Apple SD Gothic Neo", serif;
+  }
+  html[data-theme="editorial"] {
+    --bg:#f8f3e9; --ink:#231c10; --ink2:#6b6150; --ink3:#8e8470;
+    --accent:#9a3b1e; --rule:#ddd3bf; --rule-strong:#231c10;
+    --card:#fffdf7; --card-bd:#e6dcc8; --radius:2px; --shadow:none;
+    --bar:#3a332a; --track:#ece4d2;
+    --display:var(--serif); --body:var(--serif); --meta:var(--sans);
+  }
+  html[data-theme="dark"] {
+    --bg:#161008; --ink:#f0e6d2; --ink2:#bfae8f; --ink3:#8a7c64;
+    --accent:#d9a84e; --rule:#352a1b; --rule-strong:#c9b68c;
+    --card:#1e170d; --card-bd:#352a1b; --radius:2px; --shadow:none;
+    --bar:#d9a84e; --track:#1f1810;
+    --display:var(--serif); --body:var(--serif); --meta:var(--sans);
+  }
+  html[data-theme="minimal"] {
+    --bg:#fafafa; --ink:#111113; --ink2:#55555e; --ink3:#9d9da8;
+    --accent:#4f46e5; --rule:#e8e8ec; --rule-strong:#111113;
+    --card:#ffffff; --card-bd:#e8e8ec; --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.05);
+    --bar:#4f46e5; --track:#eeeef2;
+    --display:var(--sans); --body:var(--sans); --meta:var(--sans);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--body); line-height: 1.65;
+    transition: background .25s ease, color .25s ease;
+  }
+  .wrap { max-width: 46rem; margin: 0 auto; padding: 4.5rem 1.5rem 8rem; }
+  a { color: inherit; text-decoration: none; }
+
+  .kicker {
+    font-family: var(--meta); font-size: .7rem; font-weight: 600;
+    letter-spacing: .38em; text-transform: uppercase; color: var(--accent);
+    margin: 0 0 1.1rem;
+  }
+  .back {
+    font-family: var(--meta); font-size: .82rem; font-weight: 600; color: var(--ink2);
+  }
+  .back:hover { color: var(--accent); }
+  h1 {
+    font-family: var(--display); font-weight: 900; margin: 0 0 .4rem;
+    font-size: clamp(2.6rem, 8vw, 4.2rem); line-height: 1.05; letter-spacing: -0.015em;
+  }
+  h1 .yr { display:block; font-size: clamp(3.4rem, 11vw, 5.6rem); letter-spacing:.01em; }
+  .lede { font-size: 1rem; color: var(--ink2); margin: .8rem 0 2rem; max-width: 34rem; }
+  .double-rule { border-top: 3px solid var(--rule-strong); margin-bottom: 2px; }
+  .double-rule::after { content:""; display:block; border-top: 1px solid var(--rule-strong); margin-top: 2px; }
+  html[data-theme="minimal"] .double-rule, html[data-theme="minimal"] .double-rule::after { border-color: var(--rule); }
+
+  /* ── 스탯 타일 ── */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    margin: 0 0 1rem; border-bottom: 1px solid var(--rule);
+  }
+  .stat { padding: 1.4rem .2rem 1.2rem; border-left: 1px solid var(--rule); padding-left: 1.1rem; }
+  .stat:first-child { border-left: none; padding-left: .2rem; }
+  .s-v { font-family: var(--display); font-weight: 900; font-size: 2.3rem; line-height: 1; margin: 0; }
+  .s-v small { font-size: 1.05rem; font-weight: 600; margin-left: .1em; }
+  .s-k { font-family: var(--meta); font-size: .76rem; color: var(--ink3); margin: .5rem 0 0; letter-spacing: .04em; }
+  html[data-theme="minimal"] .stats-row { gap: .8rem; border-bottom: none; }
+  html[data-theme="minimal"] .stat {
+    background: var(--card); border: 1px solid var(--card-bd); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 1.2rem 1.3rem;
+  }
+
+  /* ── 섹션 ── */
+  section { margin-top: 3.4rem; }
+  .sec-head { display:flex; align-items:baseline; gap:.9rem; margin-bottom: 1.3rem; }
+  .sec-no { font-family: var(--display); font-style: italic; font-weight: 600; color: var(--accent); font-size: 1rem; }
+  h2 {
+    font-family: var(--display); font-weight: 900; font-size: 1.45rem; margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .sec-rule { flex:1; border-bottom: 1px solid var(--rule); transform: translateY(-6px); }
+
+  /* ── 멤버 바 차트 ── */
+  .member-row {
+    display: grid; grid-template-columns: 3.6rem 1fr 2.6rem auto;
+    gap: .9rem; align-items: center; margin: .85rem 0;
+    font-family: var(--meta);
+  }
+  .m-name { font-family: var(--body); font-weight: 600; font-size: .95rem; }
+  .m-track { background: var(--track); height: 12px; border-radius: 0 6px 6px 0; }
+  .m-bar {
+    height: 100%; width: var(--v); background: var(--bar);
+    border-radius: 0 6px 6px 0; min-width: 6px;
+    animation: grow .7s cubic-bezier(.2,.7,.2,1) both;
+  }
+  @keyframes grow { from { width: 0; } }
+  .m-val { font-weight: 700; font-size: .92rem; text-align: right; font-variant-numeric: tabular-nums; }
+  .m-streak { font-size: .74rem; color: var(--ink3); white-space: nowrap; }
+  .m-streak b { color: var(--accent); font-weight: 700; }
+
+  /* ── 월별 추이 ── */
+  .months {
+    display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px;
+    align-items: end; height: 150px; padding-top: 1.4rem;
+  }
+  .mo { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 5px; position: relative; }
+  .mo i {
+    display: block; width: 100%; max-width: 26px;
+    height: calc(var(--h) * 1%); background: var(--bar);
+    border-radius: 4px 4px 0 0; transition: opacity .15s;
+    animation: rise .7s cubic-bezier(.2,.7,.2,1) both;
+  }
+  @keyframes rise { from { height: 0; } }
+  .mo.zero i { height: 2px; background: var(--rule); border-radius: 0; }
+  .mo-v {
+    font-family: var(--meta); font-size: .72rem; font-weight: 700;
+    color: var(--ink2); opacity: 0; transition: opacity .15s;
+    font-variant-numeric: tabular-nums;
+  }
+  .mo:hover .mo-v, .mo.max .mo-v { opacity: 1; }
+  .mo:hover i { opacity: .75; }
+  .mo-l { font-family: var(--meta); font-size: .66rem; color: var(--ink3); }
+  .months-base { border-top: 1px solid var(--rule); margin-top: 6px; }
+
+  /* ── 키워드 ── */
+  .keywords { display: flex; flex-wrap: wrap; gap: .55rem .7rem; align-items: baseline; }
+  .kw {
+    font-family: var(--body); border: 1px solid var(--rule);
+    border-radius: 99px; padding: .34em .95em; line-height: 1.3;
+    transition: border-color .15s, color .15s;
+  }
+  .kw:hover { border-color: var(--accent); color: var(--accent); }
+  .kw sup { font-family: var(--meta); font-size: .62em; color: var(--ink3); margin-left: .45em; font-weight: 700; }
+  .kw.s3 { font-size: 1.22rem; font-weight: 700; }
+  .kw.s2 { font-size: 1.02rem; font-weight: 600; }
+  .kw.s1 { font-size: .88rem; color: var(--ink2); }
+  html[data-theme="editorial"] .kw { border-color: color-mix(in srgb, var(--rule-strong) 28%, transparent); }
+  html[data-theme="minimal"] .kw { background: var(--card); border-color: var(--card-bd); box-shadow: var(--shadow); }
+
+  /* ── 올해의 기록 ── */
+  .records { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .rec { background: var(--bg); padding: 1.25rem 1.3rem 1.15rem; }
+  .rec-k { font-family: var(--meta); font-size: .7rem; font-weight: 700; letter-spacing: .18em; color: var(--accent); margin: 0 0 .55rem; text-transform: uppercase; }
+  .rec-v { font-family: var(--display); font-weight: 600; font-size: 1.06rem; margin: 0; line-height: 1.45; }
+  .rec-m { font-family: var(--meta); font-size: .78rem; color: var(--ink3); margin: .45rem 0 0; }
+  html[data-theme="minimal"] .records { gap: .8rem; background: transparent; border: none; }
+  html[data-theme="minimal"] .rec { background: var(--card); border: 1px solid var(--card-bd); border-radius: var(--radius); box-shadow: var(--shadow); }
+  html[data-theme="dark"] .rec { background: var(--card); }
+
+  /* ── 마무리 줄 ── */
+  .closing { margin-top: 3.4rem; border-top: 1px solid var(--rule); padding-top: 1.5rem; }
+  .cl-row { display: grid; grid-template-columns: 7rem 1fr; gap: 1rem; margin: .65rem 0; font-size: .95rem; }
+  .cl-k { font-family: var(--meta); font-size: .74rem; font-weight: 700; letter-spacing: .16em; color: var(--ink3); text-transform: uppercase; padding-top: .25rem; }
+  .cl-v b { font-weight: 700; }
+  .cl-v .pos { color: var(--accent); font-weight: 700; }
+
+  .foot {
+    margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid var(--rule);
+    font-family: var(--meta); font-size: .78rem; color: var(--ink3);
+    display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  }
+
+  /* ── 테마 토글(목업 전용) ── */
+  .tg {
+    position: fixed; bottom: 1.1rem; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: .3rem;
+    background: color-mix(in srgb, var(--ink) 92%, transparent); color: var(--bg);
+    padding: .4rem .55rem .4rem .8rem; border-radius: 99px;
+    font-family: var(--sans); font-size: .72rem;
+    box-shadow: 0 6px 24px rgba(0,0,0,.25); z-index: 9;
+  }
+  .tg .lab { opacity:.65; margin-right:.35rem; }
+  .tg button {
+    all: unset; cursor: pointer; padding: .3rem .7rem; border-radius: 99px;
+    font-size: .74rem; font-weight: 600; color: var(--bg); opacity: .6;
+  }
+  .tg button:hover { opacity: .9; }
+  .tg button[aria-pressed="true"] { background: var(--bg); color: var(--ink); opacity: 1; }
+
+  @media (max-width: 580px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .stat:nth-child(3) { border-left: none; padding-left: .2rem; }
+    .records { grid-template-columns: 1fr; }
+    .member-row { grid-template-columns: 3.3rem 1fr 2.2rem; }
+    .m-streak { grid-column: 2 / -1; margin-top: -4px; }
+    .mo-l:nth-child(even) { visibility: hidden; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="kicker">Geulgae · Year in Review</p>
+    <h1><span class="yr">2026</span>글개 결산</h1>
+    <p class="lede">1월부터 11월까지, 네 사람이 18주를 함께 썼습니다. 올해 글개에 쌓인 글과 기록의 정리.</p>
+    <div class="double-rule"></div>
+  </header>
+
+  <div class="stats-row" style="margin-top:1.6rem">
+    <div class="stat"><p class="s-v">42<small>편</small></p><p class="s-k">올해의 글</p></div>
+    <div class="stat"><p class="s-v">18<small>주</small></p><p class="s-k">함께한 주차</p></div>
+    <div class="stat"><p class="s-v">6<small>주</small></p><p class="s-k">전원 달성</p></div>
+    <div class="stat"><p class="s-v">4<small>명</small></p><p class="s-k">함께 쓴 사람</p></div>
+  </div>
+
+  <section>
+    <div class="sec-head"><span class="sec-no">01</span><h2>누가 썼나</h2><span class="sec-rule"></span></div>
+    <div class="member-row">
+      <span class="m-name">하영</span>
+      <div class="m-track"><div class="m-bar" style="--v:100%"></div></div>
+      <span class="m-val">15</span>
+      <span class="m-streak">최장 <b>9주</b> 연속 달성</span>
+    </div>
+    <div class="member-row">
+      <span class="m-name">민희</span>
+      <div class="m-track"><div class="m-bar" style="--v:73%; animation-delay:.06s"></div></div>
+      <span class="m-val">11</span>
+      <span class="m-streak">최장 <b>6주</b> 연속 달성</span>
+    </div>
+    <div class="member-row">
+      <span class="m-name">지안</span>
+      <div class="m-track"><div class="m-bar" style="--v:60%; animation-delay:.12s"></div></div>
+      <span class="m-val">9</span>
+      <span class="m-streak">최장 <b>5주</b> 연속 달성</span>
+    </div>
+    <div class="member-row">
+      <span class="m-name">서윤</span>
+      <div class="m-track"><div class="m-bar" style="--v:47%; animation-delay:.18s"></div></div>
+      <span class="m-val">7</span>
+      <span class="m-streak">최장 <b>4주</b> 연속 달성</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-no">02</span><h2>한 해의 리듬</h2><span class="sec-rule"></span></div>
+    <div class="months" role="img" aria-label="월별 발행 추이: 1월 2편부터 11월 5편까지, 7·9·11월이 5편으로 가장 많음">
+      <div class="mo"><span class="mo-v">2</span><i style="--h:40"></i><span class="mo-l">1월</span></div>
+      <div class="mo"><span class="mo-v">3</span><i style="--h:60; animation-delay:.03s"></i><span class="mo-l">2월</span></div>
+      <div class="mo"><span class="mo-v">4</span><i style="--h:80; animation-delay:.06s"></i><span class="mo-l">3월</span></div>
+      <div class="mo"><span class="mo-v">3</span><i style="--h:60; animation-delay:.09s"></i><span class="mo-l">4월</span></div>
+      <div class="mo"><span class="mo-v">4</span><i style="--h:80; animation-delay:.12s"></i><span class="mo-l">5월</span></div>
+      <div class="mo"><span class="mo-v">3</span><i style="--h:60; animation-delay:.15s"></i><span class="mo-l">6월</span></div>
+      <div class="mo max"><span class="mo-v">5</span><i style="--h:100; animation-delay:.18s"></i><span class="mo-l">7월</span></div>
+      <div class="mo"><span class="mo-v">4</span><i style="--h:80; animation-delay:.21s"></i><span class="mo-l">8월</span></div>
+      <div class="mo"><span class="mo-v">5</span><i style="--h:100; animation-delay:.24s"></i><span class="mo-l">9월</span></div>
+      <div class="mo"><span class="mo-v">4</span><i style="--h:80; animation-delay:.27s"></i><span class="mo-l">10월</span></div>
+      <div class="mo"><span class="mo-v">5</span><i style="--h:100; animation-delay:.3s"></i><span class="mo-l">11월</span></div>
+      <div class="mo zero"><span class="mo-v">0</span><i></i><span class="mo-l">12월</span></div>
+    </div>
+    <div class="months-base"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-no">03</span><h2>올해의 키워드</h2><span class="sec-rule"></span></div>
+    <div class="keywords">
+      <span class="kw s3">회고<sup>9</sup></span>
+      <span class="kw s3">글쓰기 루틴<sup>7</sup></span>
+      <span class="kw s2">타입스크립트<sup>6</sup></span>
+      <span class="kw s2">사이드 프로젝트<sup>5</sup></span>
+      <span class="kw s2">독서<sup>5</sup></span>
+      <span class="kw s1">커리어<sup>4</sup></span>
+      <span class="kw s1">디자인 시스템<sup>3</sup></span>
+      <span class="kw s1">러닝<sup>3</sup></span>
+      <span class="kw s1">인터뷰<sup>2</sup></span>
+      <span class="kw s1">제주<sup>2</sup></span>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-no">04</span><h2>올해의 기록</h2><span class="sec-rule"></span></div>
+    <div class="records">
+      <div class="rec">
+        <p class="rec-k">첫 글</p>
+        <p class="rec-v">「새해엔 매주 쓰기로 했다」</p>
+        <p class="rec-m">1월 5일 · 하영</p>
+      </div>
+      <div class="rec">
+        <p class="rec-k">가장 바빴던 달</p>
+        <p class="rec-v">7월 — 5편</p>
+        <p class="rec-m">여름의 기세</p>
+      </div>
+      <div class="rec">
+        <p class="rec-k">가장 긴 전원 달성</p>
+        <p class="rec-v">3주 연속</p>
+        <p class="rec-m">5월 1주차 – 3주차</p>
+      </div>
+      <div class="rec">
+        <p class="rec-k">마지막 글</p>
+        <p class="rec-v">「결정 중심 개발 일주일 후기」</p>
+        <p class="rec-m">11월 16일 · 하영</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="closing">
+    <div class="cl-row">
+      <span class="cl-k">전원 달성</span>
+      <span class="cl-v">3월 2주차 · 5월 1·2·3주차 · 7월 4주차 · 9월 1주차 — <b>6주</b></span>
+    </div>
+    <div class="cl-row">
+      <span class="cl-k">벌금</span>
+      <span class="cl-v">정산 부과 <b>60,000원</b> · 수동 조정 <b>−35,000원</b></span>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <a class="back" href="mockup-archive.html">← 글개 Archive</a>
+    <span>멤버 전용 비공개 페이지 · noindex</span>
+  </footer>
+
+</div>
+
+<nav class="tg" aria-label="목업 테마 전환">
+  <span class="lab">목업 테마</span>
+  <button data-t="editorial" onclick="setTheme('editorial')">에디토리얼</button>
+  <button data-t="dark" onclick="setTheme('dark')">다크</button>
+  <button data-t="minimal" onclick="setTheme('minimal')">미니멀</button>
+</nav>
+
+<script>
+  const KEY = "geulgae-mock-theme";
+  function setTheme(t) {
+    document.documentElement.dataset.theme = t;
+    try { localStorage.setItem(KEY, t); } catch (e) {}
+    document.querySelectorAll(".tg button").forEach(b =>
+      b.setAttribute("aria-pressed", String(b.dataset.t === t)));
+  }
+  let saved = "editorial";
+  try { saved = localStorage.getItem(KEY) || saved; } catch (e) {}
+  setTheme(saved);
+</script>
+</body>
+</html>
