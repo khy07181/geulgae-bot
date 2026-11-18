@@ -1,7 +1,8 @@
 import {
-  addParticipant, countSubmissionsByUser, insertSubmission, setSubmissionFetchResult, type CycleRow,
+  addParticipant, countSubmissionsByUser, insertKeywords, insertSubmission, setSubmissionFetchResult, type CycleRow,
 } from "../db/queries";
 import { isPastDeadline } from "../domain/cycle";
+import { extractKeywords, htmlToText } from "../domain/keywords";
 import { normalizeUrl } from "../domain/url";
 import { deferredEphemeral, ephemeral } from "../discord/replies";
 import type { Deps, Handler } from "../router";
@@ -71,6 +72,7 @@ async function verifyAndReport(
 ): Promise<void> {
   let status: "ok" | "failed" = "failed";
   let title: string | null = null;
+  let html: string | null = null;
   let note = "⚠️ 링크 접속 확인은 실패했지만 인증은 유효해요.";
   try {
     const res = await deps.fetcher(url, {
@@ -79,7 +81,7 @@ async function verifyAndReport(
       headers: BROWSER_HEADERS,
     });
     if (res.ok) {
-      const html = await res.text();
+      html = await res.text();
       const m = html.match(/<title[^>]*>([^<]*)<\/title>/i);
       title = m ? m[1].trim().slice(0, 100) || null : null;
       status = "ok";
@@ -96,6 +98,16 @@ async function verifyAndReport(
     console.error(`링크 검증 예외 (${url}):`, err);
   }
   await setSubmissionFetchResult(deps.db, submissionId, status, title);
+  // PAGE-011·PAGE-012: 같은 응답의 본문으로 키워드를 추출하고, 본문은 저장하지 않는다.
+  // 실패해도 인증·제목 저장에 영향 없음. 로그에도 본문을 남기지 않는다.
+  if (deps.ai && html) {
+    try {
+      const keywords = await extractKeywords(deps.ai, title, htmlToText(html));
+      await insertKeywords(deps.db, submissionId, keywords, deps.now().toISOString());
+    } catch (err) {
+      console.error(`키워드 추출 실패 (submission ${submissionId}):`, err);
+    }
+  }
   try {
     await deps.api.sendMessage(cycle.thread_id, { content: note, allowed_mentions: { parse: [] } });
   } catch (err) {

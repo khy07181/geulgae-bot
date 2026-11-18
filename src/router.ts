@@ -8,7 +8,7 @@ import { handlePenaltyAdjust, handlePenaltyStatus } from "./interactions/penalty
 import { handleStatus } from "./interactions/status";
 import { handleSubmit } from "./interactions/submit";
 import { handleWithdraw } from "./interactions/withdraw";
-import { InteractionType, type Env, type Interaction } from "./types";
+import { InteractionType, type AiBinding, type Env, type Interaction } from "./types";
 
 export interface Deps {
   env: Env;
@@ -17,6 +17,8 @@ export interface Deps {
   ctx: ExecutionContext;
   now: () => Date;
   fetcher: Fetcher;
+  // PAGE-011: 키워드 추출용 Workers AI. 없으면 추출을 건너뛴다.
+  ai?: AiBinding;
 }
 
 export type Handler = (interaction: Interaction, deps: Deps) => Promise<Response>;

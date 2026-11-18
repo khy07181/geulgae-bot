@@ -9,6 +9,10 @@ crons = ["1 15 * * *", "0 1 * * TUE", "0 1 * * SUN"]
 [observability]
 enabled = true
 
+# PAGE-011: 키워드 추출용 Workers AI (바인딩 — npm 의존성 아님, 무료 한도 내 사용)
+[ai]
+binding = "AI"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "geulgae-bot-db"

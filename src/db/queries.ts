@@ -218,6 +218,29 @@ export async function getNicknames(db: D1Database): Promise<Map<string, string>>
   return new Map(results.map((r) => [r.user_id, r.name]));
 }
 
+// PAGE-008·PAGE-012: 결산 키워드. 본문은 저장하지 않고 추출된 키워드만 남긴다.
+export async function insertKeywords(
+  db: D1Database,
+  submissionId: number,
+  keywords: string[],
+  createdAt: string
+): Promise<void> {
+  if (keywords.length === 0) return;
+  const stmt = db.prepare(
+    "INSERT OR IGNORE INTO keywords (submission_id, keyword, created_at) VALUES (?, ?, ?)"
+  );
+  await db.batch(keywords.map((k) => stmt.bind(submissionId, k, createdAt)));
+}
+
+export async function listAllKeywords(
+  db: D1Database
+): Promise<{ submission_id: number; keyword: string }[]> {
+  const { results } = await db
+    .prepare("SELECT submission_id, keyword FROM keywords")
+    .all<{ submission_id: number; keyword: string }>();
+  return results;
+}
+
 export async function listUnsettledCycles(db: D1Database): Promise<CycleRow[]> {
   const { results } = await db
     .prepare("SELECT * FROM cycles WHERE settled_at IS NULL ORDER BY week_start")
