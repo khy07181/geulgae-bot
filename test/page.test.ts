@@ -32,7 +32,7 @@ async function seedLibrary() {
   return c;
 }
 
-describe("서재 페이지 (GET)", () => {
+describe("아카이브 페이지 (GET)", () => {
   it("루트는 기존 무해 응답을 유지한다 (PAGE-001)", async () => {
     const res = await get("/");
     expect(res.status).toBe(200);
@@ -46,7 +46,7 @@ describe("서재 페이지 (GET)", () => {
     expect((await get("/anything")).status).toBe(404);
   });
 
-  it("PAGE_TOKEN 미설정이면 서재 경로는 닫힌다 (PAGE-003)", async () => {
+  it("PAGE_TOKEN 미설정이면 아카이브 경로는 닫힌다 (PAGE-003)", async () => {
     await seedLibrary();
     expect((await get("/s/test-page-token", { PAGE_TOKEN: undefined })).status).toBe(404);
   });
@@ -57,14 +57,17 @@ describe("서재 페이지 (GET)", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     const html = await res.text();
-    expect(html).toContain("글개 서재");
-    expect(html).toContain("글 2편 · 1주차 · 참여 2명");
+    expect(html).toContain("글개 Archive"); // PAGE-006: 표시 이름
+    expect(html).toContain("글 2편");
+    expect(html).toContain("· 1주차 · 참여 2명");
     expect(html).toContain("첫 번째 글"); // fetch_title 사용
     expect(html).toContain("https://blog.test/post-2"); // 제목 없으면 URL 표시
     expect(html).toContain("하영"); // 닉네임
     expect(html).toContain("익명 A"); // 미등록자 라벨
     expect(html).toContain("7월 2주차");
     expect(html).toContain("noindex"); // 검색엔진 수집 금지
+    // PAGE-007: 웹폰트 CDN 로드 시 비밀 경로가 Referer로 새지 않게 no-referrer를 강제한다 (경계 테스트)
+    expect(html).toContain('<meta name="referrer" content="no-referrer">');
   });
 
   it("Discord 숫자 ID는 페이지에 노출되지 않는다 (PAGE-001)", async () => {
