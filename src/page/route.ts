@@ -1,6 +1,6 @@
 import {
-  countDistinctParticipants, getNicknames, listAllCycles, listAllParticipants, listAllPenaltyEntries,
-  listAllSubmissions,
+  countDistinctParticipants, getNicknames, listAllCycles, listAllKeywords, listAllParticipants,
+  listAllPenaltyEntries, listAllSubmissions,
 } from "../db/queries";
 import { buildRecap } from "../domain/recap";
 import type { Env } from "../types";
@@ -35,10 +35,11 @@ async function archiveResponse(db: D1Database): Promise<Response> {
 }
 
 async function recapResponse(db: D1Database, year: number): Promise<Response> {
-  const [cycles, submissions, participants, penalties, nicknames] = await Promise.all([
-    listAllCycles(db), listAllSubmissions(db), listAllParticipants(db), listAllPenaltyEntries(db), getNicknames(db),
+  const [cycles, submissions, participants, penalties, nicknames, keywords] = await Promise.all([
+    listAllCycles(db), listAllSubmissions(db), listAllParticipants(db), listAllPenaltyEntries(db),
+    getNicknames(db), listAllKeywords(db),
   ]);
-  const recap = buildRecap({ year, cycles, submissions, participants, penalties });
+  const recap = buildRecap({ year, cycles, submissions, participants, penalties, keywords });
   // 익명 라벨은 아카이브와 같은 기준(전체 제출 시간순 첫 등장)으로 배정해 페이지 간에 어긋나지 않게 한다.
   const names = displayNames(submissions.map((s) => s.user_id), nicknames);
   return new Response(renderRecap(recap, names), { status: 200, headers: HTML });

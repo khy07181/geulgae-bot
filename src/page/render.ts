@@ -133,10 +133,6 @@ const STYLE = `
   .rec-v { font-weight: 700; font-size: 1.02rem; margin: 0; line-height: 1.45; overflow-wrap: anywhere; }
   .rec-m { font-size: .76rem; color: var(--ink3); margin: .4rem 0 0; }
 
-  table { border-collapse: collapse; margin: 1rem 0; }
-  th, td { border: 1px solid var(--rule); padding: .45rem .9rem; text-align: center; background: var(--card); }
-  th:first-child, td:first-child { text-align: left; }
-
   .closing { margin-top: 3rem; border-top: 1px solid var(--rule); padding-top: 1.4rem; }
   .cl-row { display: grid; grid-template-columns: 6.5rem 1fr; gap: 1rem; margin: .6rem 0; font-size: .92rem; }
   .cl-k { font-size: .7rem; font-weight: 700; letter-spacing: .14em; color: var(--ink3); text-transform: uppercase; padding-top: .3rem; }
@@ -239,28 +235,104 @@ ${items}
   return layout("글개 Archive", out);
 }
 
-// VIS-001·PAGE-004·PAGE-005: 연도별 결산 뷰. 연중에 열면 진행 현황판으로 동작한다.
-// (T-006에서 PAGE-009 구성으로 확장 예정)
+// 결산에 보여줄 키워드 수 상한 — 구현 임시값
+export const RECAP_KEYWORD_LIMIT = 12;
+
+// VIS-001·PAGE-004·PAGE-005·PAGE-009: 연도별 결산 뷰. 연중에 열면 진행 현황판으로 동작한다.
+// 구성: 스탯 타일 → 누가 썼나(바+스트릭) → 한 해의 리듬(월별) → 키워드 → 올해의 기록 → 전원 달성·벌금
 export function renderRecap(recap: Recap, names: Map<string, string>): string {
   const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
+  const name = (id: string) => escapeHtml(names.get(id) ?? "익명");
+  const title = `${recap.year} 글개 결산`;
+
   let out = `<header>
 <p class="kicker">Geulgae · Year in Review</p>
 <h1>${recap.year} 글개 결산</h1>
-</header>\n`;
+`;
   if (recap.weekCount === 0) {
-    out += `<p class="empty" style="margin-top:1.5rem">이 해의 기록이 없어요.</p>\n<footer class="foot"><a class="back" href="./">← 글개 Archive</a></footer>\n`;
-    return layout(`${recap.year} 글개 결산`, out);
+    out += `</header>
+<p class="empty" style="margin-top:1.5rem">이 해의 기록이 없어요.</p>
+<footer class="foot"><a class="back" href="./">← 글개 Archive</a></footer>\n`;
+    return layout(title, out);
   }
-  out += `<p class="stats">글 ${recap.postCount}편 · ${recap.weekCount}주차 · 전원 달성 ${recap.allAchievedWeekLabels.length}주</p>\n`;
-  out += `<table><thead><tr><th>이름</th><th>글</th><th>달성 주</th><th>참여 주</th></tr></thead><tbody>\n`;
+  out += `<p class="lede">${recap.members.length}명이 ${recap.weekCount}주를 함께 쓴 기록이에요.</p>
+</header>\n`;
+
+  out += `<div class="stats-row">
+<div class="stat"><p class="s-v">${recap.postCount}<small>편</small></p><p class="s-k">올해의 글</p></div>
+<div class="stat"><p class="s-v">${recap.weekCount}<small>주</small></p><p class="s-k">함께한 주차</p></div>
+<div class="stat"><p class="s-v">${recap.allAchievedWeekLabels.length}<small>주</small></p><p class="s-k">전원 달성</p></div>
+<div class="stat"><p class="s-v">${recap.members.length}<small>명</small></p><p class="s-k">함께 쓴 사람</p></div>
+</div>\n`;
+
+  let secNo = 0;
+  const secHead = (t: string) => {
+    secNo += 1;
+    return `<section>\n<div class="sec-head"><span class="sec-no">${String(secNo).padStart(2, "0")}</span><h2>${t}</h2><span class="sec-rule"></span></div>\n`;
+  };
+
+  // 누가 썼나 — 멤버별 발행 수 바 + 최장 연속 달성
+  const maxPosts = Math.max(1, ...recap.members.map((m) => m.posts));
+  out += secHead("누가 썼나");
   for (const m of recap.members) {
-    out += `<tr><td>${escapeHtml(names.get(m.userId) ?? "익명")}</td><td>${m.posts}</td><td>${m.achievedWeeks}</td><td>${m.joinedWeeks}</td></tr>\n`;
+    const pct = Math.round((m.posts / maxPosts) * 100);
+    const streak = m.longestStreak > 0 ? `최장 <b>${m.longestStreak}주</b> 연속 달성` : "연속 달성 없음";
+    out += `<div class="member-row"><span class="m-name">${name(m.userId)}</span><div class="m-track"><div class="m-bar" style="--v:${pct}%"></div></div><span class="m-val">${m.posts}</span><span class="m-streak">${streak}</span></div>\n`;
   }
-  out += `</tbody></table>\n`;
+  out += `</section>\n`;
+
+  // 한 해의 리듬 — 월별 발행 추이
+  const maxMonth = Math.max(...recap.monthlyPosts);
+  out += secHead("한 해의 리듬");
+  out += `<div class="months" role="img" aria-label="월별 발행 추이">\n`;
+  recap.monthlyPosts.forEach((n, i) => {
+    const h = maxMonth > 0 ? Math.round((n / maxMonth) * 100) : 0;
+    const cls = n === 0 ? "mo zero" : n === maxMonth ? "mo max" : "mo";
+    out += `<div class="${cls}"><span class="mo-v">${n}</span><i style="--h:${h}"></i><span class="mo-l">${i + 1}월</span></div>\n`;
+  });
+  out += `</div>\n<div class="months-base"></div>\n</section>\n`;
+
+  // 올해의 키워드 (PAGE-008) — 빈도 상위, 크기 3단계
+  if (recap.keywords.length > 0) {
+    const top = recap.keywords.slice(0, RECAP_KEYWORD_LIMIT);
+    const maxKw = top[0].count;
+    out += secHead("올해의 키워드");
+    out += `<div class="keywords">\n`;
+    for (const k of top) {
+      const size = k.count >= maxKw * 0.75 ? "s3" : k.count >= maxKw * 0.45 ? "s2" : "s1";
+      out += `<span class="kw ${size}">${escapeHtml(k.keyword)}<sup>${k.count}</sup></span>\n`;
+    }
+    out += `</div>\n</section>\n`;
+  }
+
+  // 올해의 기록 카드
+  if (recap.records) {
+    const r = recap.records;
+    out += secHead("올해의 기록");
+    out += `<div class="records">\n`;
+    out += `<div class="rec"><p class="rec-k">첫 글</p><p class="rec-v">「${escapeHtml(r.firstPost.title)}」</p><p class="rec-m">${r.firstPost.dateLabel} · ${name(r.firstPost.userId)}</p></div>\n`;
+    if (r.lastPost) {
+      out += `<div class="rec"><p class="rec-k">마지막 글</p><p class="rec-v">「${escapeHtml(r.lastPost.title)}」</p><p class="rec-m">${r.lastPost.dateLabel} · ${name(r.lastPost.userId)}</p></div>\n`;
+    }
+    if (r.busiestMonth) {
+      out += `<div class="rec"><p class="rec-k">가장 바빴던 달</p><p class="rec-v">${r.busiestMonth.month}월 — ${r.busiestMonth.count}편</p><p class="rec-m">한 달 최다 발행</p></div>\n`;
+    }
+    if (r.longestAllAchievedRun) {
+      const run = r.longestAllAchievedRun;
+      const range = run.length === 1 ? run.startLabel : `${run.startLabel} – ${run.endLabel}`;
+      out += `<div class="rec"><p class="rec-k">가장 긴 전원 달성</p><p class="rec-v">${run.length}주${run.length > 1 ? " 연속" : ""}</p><p class="rec-m">${escapeHtml(range)}</p></div>\n`;
+    }
+    out += `</div>\n</section>\n`;
+  }
+
+  // 전원 달성 주 · 벌금
+  out += `<div class="closing">\n`;
   if (recap.allAchievedWeekLabels.length > 0) {
-    out += `<p>🎉 전원 달성: ${recap.allAchievedWeekLabels.map((w) => escapeHtml(weekLabel(w))).join(", ")}</p>\n`;
+    out += `<div class="cl-row"><span class="cl-k">전원 달성</span><span class="cl-v">${recap.allAchievedWeekLabels.map((w) => escapeHtml(weekLabel(w))).join(" · ")}</span></div>\n`;
   }
-  out += `<p>⚖️ 벌금 — 정산 부과 ${won(recap.settlementSum)} · 수동 조정 ${won(recap.adjustmentSum)}</p>\n`;
+  out += `<div class="cl-row"><span class="cl-k">벌금</span><span class="cl-v">정산 부과 <b>${won(recap.settlementSum)}</b> · 수동 조정 <b>${won(recap.adjustmentSum)}</b></span></div>\n`;
+  out += `</div>\n`;
+
   out += `<footer class="foot"><a class="back" href="./">← 글개 Archive</a><span>멤버 전용 비공개 페이지</span></footer>\n`;
-  return layout(`${recap.year} 글개 결산`, out);
+  return layout(title, out);
 }

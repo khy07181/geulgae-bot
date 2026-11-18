@@ -157,6 +157,7 @@ export async function listAllCycles(db: D1Database): Promise<CycleRow[]> {
 }
 
 export interface SubmissionRow {
+  id: number;
   cycle_id: number;
   user_id: string;
   url: string;
@@ -166,7 +167,7 @@ export interface SubmissionRow {
 
 export async function listAllSubmissions(db: D1Database): Promise<SubmissionRow[]> {
   const { results } = await db
-    .prepare("SELECT cycle_id, user_id, url, fetch_title, submitted_at FROM submissions ORDER BY submitted_at")
+    .prepare("SELECT id, cycle_id, user_id, url, fetch_title, submitted_at FROM submissions ORDER BY submitted_at")
     .all<SubmissionRow>();
   return results;
 }
